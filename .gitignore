@@ -1,0 +1,53 @@
+# AI Virtual Interviewer Platform - .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.env
+.venv
+env/
+venv/
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded files and reports (runtime data, not source)
+backend/uploads/resumes/
+backend/uploads/reports/
+
+# Node.js / Frontend
+node_modules/
+frontend/dist/
+frontend/.env
+.npm
+
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Vite / Build artifacts
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
