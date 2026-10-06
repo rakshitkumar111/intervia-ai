@@ -48,10 +48,18 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
   const connectTimeoutRef = useRef<number | null>(null);
   const hasTriggeredFallbackRef = useRef<boolean>(false);
   const connectionGenRef = useRef<number>(connectionGeneration);
+  // Ref so timeout callbacks always read the latest connection status (avoids stale closure)
+  const connectionStatusRef = useRef<string>('initializing');
 
   useEffect(() => {
     connectionGenRef.current = connectionGeneration;
   }, [connectionGeneration]);
+
+  // Keep the ref in sync so closure callbacks (e.g. setTimeout) always see the latest status
+  const setStatus = (s: 'initializing' | 'connecting' | 'connected' | 'error' | 'unconfigured' | 'domain_mismatch') => {
+    connectionStatusRef.current = s;
+    setConnectionStatus(s);
+  };
 
   // Requirement 15 & 16: Mute WebRTC audio when not in TALKING state
   useEffect(() => {
@@ -130,7 +138,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
     try {
       isConnectionInProgress = true;
       if (isMountedRef.current) {
-        setConnectionStatus('initializing');
+        setStatus('initializing');
         setErrorMessage(null);
         setErrorDetails(null);
         setIsInsufficientCredits(false);
@@ -145,13 +153,13 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
       if (!isLocalhost) {
         console.warn('[D-ID Stream] Allowed domain mismatch detected.');
         if (isMountedRef.current && connectionGenRef.current === currentGen) {
-          setConnectionStatus('domain_mismatch');
+          setStatus('domain_mismatch');
         }
         isConnectionInProgress = false;
         return;
       }
 
-      // Fetch avatar telemetry
+      // Fetch avatar telemetry — backend returns full client_key for SDK use
       const status = await avatarApi.getStatus();
 
       if (connectionGenRef.current !== currentGen || !isMountedRef.current) {
@@ -161,23 +169,23 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
 
       if (!status.agent_id || !status.client_key) {
         console.warn('[D-ID Stream] D-ID Agent credentials not found in backend/.env');
-        setConnectionStatus('unconfigured');
+        setStatus('unconfigured');
         isConnectionInProgress = false;
         setErrorDetails({ code: 'MISSING_CREDENTIALS', message: 'DID_AGENT_ID or DID_CLIENT_KEY missing in .env' });
         return;
       }
 
-      setConnectionStatus('connecting');
+      setStatus('connecting');
 
-      // 15-Second Connection Timeout Guard (allows full WebRTC negotiation)
+      // 30-Second Connection Timeout Guard — reads connectionStatusRef.current (NOT stale closure state)
       connectTimeoutRef.current = window.setTimeout(() => {
-        if (connectionGenRef.current === currentGen && isMountedRef.current && connectionStatus !== 'connected') {
-          console.warn('[D-ID Timeout] Connection timed out after 15s.');
-          setErrorMessage('D-ID stream connection timed out after 15 seconds.');
-          setErrorDetails({ code: 'TIMEOUT', message: 'WebRTC media stream did not arrive within 15 seconds.' });
-          setConnectionStatus('error');
+        if (connectionGenRef.current === currentGen && isMountedRef.current && connectionStatusRef.current !== 'connected') {
+          console.warn('[D-ID Timeout] Connection timed out after 30s.');
+          setErrorMessage('D-ID stream connection timed out after 30 seconds.');
+          setErrorDetails({ code: 'TIMEOUT', message: 'WebRTC media stream did not arrive within 30 seconds.' });
+          setStatus('error');
         }
-      }, 15000);
+      }, 30000);
 
       // Disconnect previous session before connecting new one
       if (isRetry || activeAgentManager) {
@@ -185,6 +193,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
       }
 
       console.log('[D-ID Singleton] Creating AgentManager with Agent ID:', status.agent_id);
+      console.log('[D-ID Singleton] client_key length received:', status.client_key?.length);
 
       const manager = await createAgentManager(status.agent_id, {
         auth: {
@@ -207,17 +216,17 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
               videoRef.current.muted = false;
               videoRef.current.play().then(() => {
                 console.log('[D-ID Video] WebRTC video element playing successfully with audio tracks.');
-                setConnectionStatus('connected');
+                setStatus('connected');
                 setNeedsAudioGesture(false);
                 onStreamReady?.();
               }).catch((e) => {
                 console.warn('[D-ID Video] Autoplay with audio was restricted:', e);
                 setNeedsAudioGesture(true);
-                setConnectionStatus('connected');
+                setStatus('connected');
                 onStreamReady?.();
               });
             } else {
-              setConnectionStatus('connected');
+              setStatus('connected');
               onStreamReady?.();
             }
           },
@@ -225,7 +234,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
             if (connectionGenRef.current !== currentGen || !isMountedRef.current) return;
             console.log('[D-ID SDK] Connection State Change:', connState);
             if (connState === 'connected') {
-              setConnectionStatus('connected');
+              setStatus('connected');
               onStreamReady?.();
             } else if (connState === 'disconnected' || connState === 'failed' || connState === 'closed') {
               if (activeMediaStream === null) {
@@ -236,7 +245,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
           onVideoStateChange: (vState: any) => {
             if (connectionGenRef.current !== currentGen || !isMountedRef.current) return;
             console.log('[D-ID SDK] Video State:', vState);
-            setConnectionStatus('connected');
+            setStatus('connected');
           },
           onError: (err: Error) => {
             if (connectionGenRef.current !== currentGen || !isMountedRef.current) return;
@@ -247,7 +256,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
             setIsInsufficientCredits(isCredits);
             setErrorMessage(msg);
             setErrorDetails({ code: isCredits ? 'INSUFFICIENT_CREDITS' : 'STREAM_ERROR', message: msg });
-            setConnectionStatus('error');
+            setStatus('error');
           }
         },
         streamOptions: {
@@ -282,10 +291,11 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
           code: isCredits ? 'INSUFFICIENT_CREDITS' : (err.code || 'CONNECT_EXCEPTION'),
           message: msg
         });
-        setConnectionStatus('error');
+        setStatus('error');
       }
     }
-  }, [onStreamReady, connectionStatus]);
+  // Remove connectionStatus from deps — we now use connectionStatusRef to avoid stale closures
+  }, [onStreamReady]);
 
   // Execute D-ID connection only when connectionGeneration changes or on explicit mount
   useEffect(() => {

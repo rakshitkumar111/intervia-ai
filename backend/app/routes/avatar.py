@@ -33,13 +33,17 @@ class CloseStreamRequest(BaseModel):
 def get_avatar_status():
     """
     Returns avatar capabilities and provider telemetry.
+    client_key is D-ID's browser-facing SDK key, safe to expose to the frontend
+    (it is a client-side key, not the secret API key).
     """
     is_cfg = did_avatar_service.is_configured() or bool(settings.DID_CLIENT_KEY)
-    masked_client_key = f"{settings.DID_CLIENT_KEY[:6]}...{settings.DID_CLIENT_KEY[-4:]}" if len(settings.DID_CLIENT_KEY) > 10 else settings.DID_CLIENT_KEY
     return {
         "did_configured": is_cfg,
         "agent_id": settings.DID_AGENT_ID,
-        "client_key": masked_client_key,
+        # Return the full client_key — it is a browser/client SDK key that
+        # D-ID explicitly requires in the frontend createAgentManager() call.
+        # The secret DID_API_KEY is never returned here.
+        "client_key": settings.DID_CLIENT_KEY,
         "primary_provider": "d-id" if is_cfg else "realistic-female",
         "fallback_available": True,
         "presenter_image_url": settings.DID_PRESENTER_IMAGE_URL,
