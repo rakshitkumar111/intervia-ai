@@ -200,6 +200,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
           type: 'key',
           clientKey: status.client_key
         },
+        mode: 'DirectPlayback' as any,
         callbacks: {
           onSrcObjectReady: (stream: MediaStream) => {
             if (connectionGenRef.current !== currentGen || !isMountedRef.current) {
@@ -282,12 +283,15 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
       isConnectionInProgress = false;
       console.error('[D-ID Singleton] Connection Exception:', err);
       if (connectionGenRef.current === currentGen && isMountedRef.current) {
-        const msg = err.message || 'Failed to initialize D-ID Agent Manager';
-        const isCredits = msg.toLowerCase().includes('credit') || err.status === 402;
+        const msg = err.description || err.message || 'Failed to initialize D-ID Agent Manager';
+        const isCredits = msg.toLowerCase().includes('credit') ||
+          err.status === 402 ||
+          err.statusCode === 402 ||
+          err.kind === 'InsufficientCreditsError';
         setIsInsufficientCredits(isCredits);
         setErrorMessage(msg);
         setErrorDetails({
-          status: err.status || err.statusCode,
+          status: err.status || err.statusCode || (isCredits ? 402 : undefined),
           code: isCredits ? 'INSUFFICIENT_CREDITS' : (err.code || 'CONNECT_EXCEPTION'),
           message: msg
         });
