@@ -12,7 +12,7 @@ import { SpeechInputArea } from '../components/interview/SpeechInputArea';
 import { AvatarControls } from '../components/avatar/AvatarControls';
 import { CodeEditorWorkspace } from '../components/coding/CodeEditorWorkspace';
 import { SystemDesignWhiteboard } from '../components/architecture/SystemDesignWhiteboard';
-import { AlertCircle, Activity, Sparkles, Briefcase, Volume2, ShieldCheck, UserCheck, Video, Lightbulb, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle, Code2, Share2 } from 'lucide-react';
+import { AlertCircle, Activity, Sparkles, Briefcase, Volume2, ShieldCheck, UserCheck, Video, Lightbulb, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle, Code2, Share2, ArrowRight } from 'lucide-react';
 
 export type InterviewPhase = 
   | 'INITIALIZING'
@@ -58,6 +58,10 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
   const [integrityEventCount, setIntegrityEventCount] = useState<number>(0);
   const [showCodeEditor, setShowCodeEditor] = useState<boolean>(false);
   const [showWhiteboard, setShowWhiteboard] = useState<boolean>(false);
+
+  // HireVue Submission State
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [submissionTime, setSubmissionTime] = useState<string>('');
 
   // 1. SINGLE AUTHORITATIVE INTERVIEWER MODE: Defaults to 'DID_HD'
   const [interviewerMode, setInterviewerMode] = useState<AvatarProviderMode>('DID_HD');
@@ -580,7 +584,7 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
     }
   };
 
-  // 12. Finalize Interview & Navigate to Executive Assessment Report
+  // 12. Finalize Interview & Submit Assessment (HireVue Standard Protocol)
   const handleFinishInterview = async (idToComplete?: number) => {
     const id = idToComplete || session?.id;
     if (!id) return;
@@ -594,9 +598,23 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
 
     try {
       await interviewApi.completeInterview(id);
-      onNavigate('report', { interviewId: id });
+
+      // HireVue Protocol: Candidates NEVER see internal evaluation reports or scores
+      const isRecruiterOrAdmin = user?.role === 'recruiter' || user?.role === 'admin';
+      if (isRecruiterOrAdmin) {
+        onNavigate('report', { interviewId: id });
+      } else {
+        setSubmissionTime(new Date().toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }));
+        setIsSubmitted(true);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate final assessment report.');
+      setError(err.message || 'Failed to submit interview assessment.');
     }
   };
 
@@ -639,6 +657,91 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
         >
           Return to Dashboard
         </button>
+      </div>
+    );
+  }
+
+  // HireVue Submission Confirmation Screen for Candidates
+  if (isSubmitted && session) {
+    const confirmationId = `HV-${session.id}-${String((session.id * 73 + 109) % 10000).padStart(4, '0')}`;
+    const candidateDisplayName = user?.full_name || session.candidate_name || 'Candidate';
+
+    return (
+      <div className="min-h-[85vh] flex flex-col items-center justify-center p-4 sm:p-6 my-8">
+        <div className="max-w-xl w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden space-y-6">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500" />
+
+          {/* Success Check Badge */}
+          <div className="flex flex-col items-center text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-[11px] font-semibold text-emerald-300 uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5" /> Assessment Submission Confirmed
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Assessment Completed!
+            </h1>
+            <p className="text-sm text-slate-300 max-w-md">
+              Thank you, <strong className="text-white font-semibold">{candidateDisplayName}</strong>. Your recorded responses and assessment telemetry have been securely transmitted to the recruitment team.
+            </p>
+          </div>
+
+          {/* Submission Receipt Card */}
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5 space-y-3 text-xs">
+            <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
+              <span className="text-slate-400">Confirmation Number</span>
+              <span className="font-mono font-bold text-emerald-400">{confirmationId}</span>
+            </div>
+            <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
+              <span className="text-slate-400">Target Role</span>
+              <span className="font-semibold text-white">{session.target_role}</span>
+            </div>
+            <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
+              <span className="text-slate-400">Recorded Responses</span>
+              <span className="text-slate-200 font-medium">{session.total_questions} of {session.total_questions} Questions Completed</span>
+            </div>
+            <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
+              <span className="text-slate-400">Submission Timestamp</span>
+              <span className="text-slate-300">{submissionTime || new Date().toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Assessment Status</span>
+              <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Submitted for Hiring Review
+              </span>
+            </div>
+          </div>
+
+          {/* HireVue Policy & Next Steps Box */}
+          <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4.5 space-y-2 text-xs text-slate-400 leading-relaxed">
+            <div className="flex items-center gap-2 text-slate-200 font-semibold">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span>What Happens Next?</span>
+            </div>
+            <ul className="space-y-1.5 list-disc list-inside text-[11px] text-slate-400">
+              <li>Our hiring team will comprehensively review your video and verbal responses.</li>
+              <li>You will receive an official update via email regarding your application status.</li>
+              <li>In accordance with recruitment confidentiality standards, individual evaluation rubrics and scores are delivered directly to the recruiter.</li>
+            </ul>
+          </div>
+
+          {/* Action Button */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+            <button
+              onClick={() => onNavigate('landing')}
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2"
+            >
+              <span>Return to Homepage</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <p className="text-[11px] text-center text-slate-500">
+            You may now safely close this browser window.
+          </p>
+        </div>
       </div>
     );
   }

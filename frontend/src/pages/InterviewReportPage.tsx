@@ -62,6 +62,32 @@ export const InterviewReportPage: React.FC<InterviewReportPageProps> = ({
     );
   }
 
+  // HireVue Confidentiality: Candidates are strictly restricted from viewing evaluation scores & internal rubrics
+  if (user?.role === 'candidate') {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Confidential Assessment Record</h2>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Evaluation metrics, technical scores, and candidate ratings are restricted to verified recruiters and hiring managers.
+          </p>
+          <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-xl text-xs text-slate-300">
+            Your assessment submission has been logged. The recruiter will contact you directly with your interview results.
+          </div>
+          <button
+            onClick={() => onNavigate('landing')}
+            className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-xl transition-colors"
+          >
+            Return to Homepage
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const vBadge = getVerdictBadge(report.hiring_readiness || report.verdict);
 
   return (
