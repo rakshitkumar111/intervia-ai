@@ -177,31 +177,49 @@ AI Virtual Interviewer Platform
         msg.attach(MIMEText(text_body, "plain", "utf-8"))
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-        try:
-            if settings.SMTP_USE_SSL:
-                server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+        def _send(use_ssl: bool, port: int):
+            if use_ssl:
+                srv = smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=25)
             else:
-                server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15)
+                srv = smtplib.SMTP(settings.SMTP_HOST, port, timeout=25)
+                srv.ehlo()
                 if settings.SMTP_USE_TLS:
-                    server.starttls()
+                    srv.starttls()
+                    srv.ehlo()
 
             if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                srv.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
 
-            server.sendmail(settings.SMTP_FROM_EMAIL, [candidate_email], msg.as_string())
-            server.quit()
+            srv.sendmail(settings.SMTP_FROM_EMAIL, [candidate_email], msg.as_string())
+            try:
+                srv.quit()
+            except Exception:
+                pass
 
+        try:
+            # First attempt: configured settings (e.g. port 587 STARTTLS)
+            _send(settings.SMTP_USE_SSL, settings.SMTP_PORT)
             logger.info(f"Interview invitation email dispatched successfully to {candidate_email}")
             return {
                 "success": True,
                 "email_status": "sent"
             }
-        except Exception as e:
-            logger.error(f"Failed to deliver email via SMTP to {candidate_email}: {e}")
-            return {
-                "success": False,
-                "error": f"SMTP Delivery Error: {str(e)}",
-                "email_status": "failed"
-            }
+        except Exception as first_err:
+            logger.warning(f"Initial SMTP delivery attempt failed ({first_err}), attempting SSL fallback...")
+            try:
+                # Fallback: SSL on port 465 (handles networks where port 587 is throttled/blocked)
+                _send(use_ssl=True, port=465)
+                logger.info(f"Interview invitation email dispatched via SSL fallback to {candidate_email}")
+                return {
+                    "success": True,
+                    "email_status": "sent"
+                }
+            except Exception as e:
+                logger.error(f"Failed to deliver email via SMTP to {candidate_email}: {e}")
+                return {
+                    "success": False,
+                    "error": f"SMTP Delivery Error: {str(e)}",
+                    "email_status": "failed"
+                }
 
 email_service = EmailService()
