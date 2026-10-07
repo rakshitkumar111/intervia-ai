@@ -17,7 +17,13 @@ import {
   FileText,
   Mic,
   Activity,
-  X
+  X,
+  Mail,
+  MessageSquare,
+  Phone,
+  Check,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import {
   recruiterApi,
@@ -42,6 +48,7 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
   const [form, setForm] = useState<InterviewInviteCreate>({
     candidate_name: '',
     candidate_email: '',
+    candidate_phone: '',
     target_role: 'Full Stack Engineer',
     domain: 'Technology',
     experience_level: 'Mid-Level',
@@ -53,7 +60,12 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [latestCreatedInvite, setLatestCreatedInvite] = useState<InterviewInviteResponse | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
+
+  // Email & WhatsApp Action State
+  const [sendingEmailId, setSendingEmailId] = useState<number | null>(null);
+  const [emailFeedback, setEmailFeedback] = useState<{ id: number; message: string; isError: boolean } | null>(null);
 
   // Replay Modal State
   const [selectedReplayId, setSelectedReplayId] = useState<number | null>(null);
@@ -86,18 +98,23 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
     if (!form.candidate_name || !form.candidate_email || !form.target_role) return;
 
     setIsSubmitting(true);
+    setEmailFeedback(null);
     try {
       const res = await recruiterApi.createInvite(form);
-      const fullUrl = `${window.location.origin}${res.invite_url}`;
+      const fullUrl = res.candidate_url || `${window.location.origin}/interview/${res.invite_token}`;
       setGeneratedLink(fullUrl);
+      setLatestCreatedInvite(res);
+
       // Refresh invites list
       const inv = await recruiterApi.getInvites();
       setInvites(inv);
+
       // Reset basic form fields
       setForm((prev) => ({
         ...prev,
         candidate_name: '',
         candidate_email: '',
+        candidate_phone: '',
       }));
     } catch (err) {
       alert(`Error creating invite: ${err instanceof Error ? err.message : String(err)}`);
@@ -110,6 +127,80 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendEmail = async (inviteId: number) => {
+    setSendingEmailId(inviteId);
+    setEmailFeedback(null);
+    try {
+      const res = await recruiterApi.sendInviteEmail(inviteId);
+      if (res.success) {
+        setInvites((prev) =>
+          prev.map((i) => (i.id === inviteId ? { ...i, email_status: 'sent' } : i))
+        );
+        setEmailFeedback({ id: inviteId, message: 'Invitation email sent successfully!', isError: false });
+      } else {
+        setInvites((prev) =>
+          prev.map((i) => (i.id === inviteId ? { ...i, email_status: 'failed' } : i))
+        );
+        setEmailFeedback({
+          id: inviteId,
+          message: res.error || 'Failed to dispatch email. Check SMTP credentials in backend/.env',
+          isError: true
+        });
+      }
+    } catch (err: any) {
+      setInvites((prev) =>
+        prev.map((i) => (i.id === inviteId ? { ...i, email_status: 'failed' } : i))
+      );
+      setEmailFeedback({
+        id: inviteId,
+        message: err?.message || 'SMTP delivery failed. Check backend SMTP configuration in .env',
+        isError: true,
+      });
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
+  const openWhatsApp = async (inv: InterviewInviteResponse) => {
+    const fullUrl = inv.candidate_url || `${window.location.origin}/interview/${inv.invite_token}`;
+    const expiry = new Date(inv.expires_at).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    const messageText = `Hello ${inv.candidate_name},
+
+You have been invited to complete an AI interview for the ${inv.target_role} position.
+
+Interview: ${inv.mode}
+Difficulty: ${inv.difficulty}
+Questions: ${inv.total_questions}
+Expires: ${expiry}
+
+Start your interview:
+${fullUrl}
+
+Good luck!`;
+
+    const encoded = encodeURIComponent(messageText);
+    const rawPhone = (inv.candidate_phone || '').replace(/[^0-9]/g, '');
+    const waUrl = rawPhone
+      ? `https://wa.me/${rawPhone}?text=${encoded}`
+      : `https://api.whatsapp.com/send?text=${encoded}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+    try {
+      await recruiterApi.markWhatsAppSent(inv.id);
+      setInvites((prev) =>
+        prev.map((i) => (i.id === inv.id ? { ...i, whatsapp_status: 'sent' } : i))
+      );
+    } catch (e) {
+      console.warn('Failed to record WhatsApp dispatch:', e);
+    }
   };
 
   const openReplayModal = async (interviewId: number) => {
@@ -406,6 +497,22 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Candidate Phone / WhatsApp (Optional)
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                    <input
+                      type="tel"
+                      placeholder="e.g. +91 98765 43210"
+                      value={form.candidate_phone || ''}
+                      onChange={(e) => setForm({ ...form, candidate_phone: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
                     Target Role
                   </label>
                   <input
@@ -496,18 +603,24 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
               </form>
 
               {/* Generated Link Box */}
-              {generatedLink && (
-                <div className="p-3 bg-purple-950/40 border border-purple-500/40 rounded-xl space-y-2">
-                  <div className="text-[11px] text-purple-300 font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    Interview Link Generated!
+              {generatedLink && latestCreatedInvite && (
+                <div className="p-3 bg-purple-950/40 border border-purple-500/40 rounded-xl space-y-3">
+                  <div className="text-[11px] text-purple-300 font-semibold flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      Candidate Invitation Link Ready!
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Zero login required
+                    </span>
                   </div>
+
                   <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
                     <input
                       type="text"
                       readOnly
                       value={generatedLink}
-                      className="w-full bg-transparent text-[11px] text-slate-300 focus:outline-none"
+                      className="w-full bg-transparent text-[11px] text-slate-300 focus:outline-none font-mono"
                     />
                     <button
                       onClick={() => copyToClipboard(generatedLink)}
@@ -516,9 +629,64 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
                     >
                       {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                     </button>
+                    <a
+                      href={generatedLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                      title="Open / Test Link in New Tab"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
                   </div>
+
+                  {/* Immediate Dispatch Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => openWhatsApp(latestCreatedInvite)}
+                      className="py-1.5 px-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                      title="Share invitation via WhatsApp"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>WhatsApp</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendEmail(latestCreatedInvite.id)}
+                      disabled={sendingEmailId === latestCreatedInvite.id}
+                      className="py-1.5 px-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                      title="Send invitation via SMTP Email"
+                    >
+                      {sendingEmailId === latestCreatedInvite.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                      ) : (
+                        <Mail className="w-3.5 h-3.5 text-purple-400" />
+                      )}
+                      <span>Send Email</span>
+                    </button>
+                  </div>
+
+                  {emailFeedback && emailFeedback.id === latestCreatedInvite.id && (
+                    <div
+                      className={`text-[11px] p-2 rounded-lg border flex items-center gap-2 ${
+                        emailFeedback.isError
+                          ? 'bg-rose-950/40 text-rose-300 border-rose-800'
+                          : 'bg-emerald-950/40 text-emerald-300 border-emerald-800'
+                      }`}
+                    >
+                      {emailFeedback.isError ? (
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 text-rose-400" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
+                      )}
+                      <span>{emailFeedback.message}</span>
+                    </div>
+                  )}
+
                   <p className="text-[10px] text-slate-400">
-                    Send this link to candidate. The session auto-activates when they start.
+                    Candidate can directly launch the assessment from desktop or mobile browser.
                   </p>
                 </div>
               )}
@@ -536,9 +704,9 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
                   <thead className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="py-2.5 px-3">Candidate</th>
-                      <th className="py-2.5 px-3">Target Role</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3">Expires At</th>
+                      <th className="py-2.5 px-3">Target Role & Score</th>
+                      <th className="py-2.5 px-3">Status & Delivery</th>
+                      <th className="py-2.5 px-3">Dates</th>
                       <th className="py-2.5 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -558,45 +726,161 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
                           expired: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
                         };
 
-                        const link = `${window.location.origin}${inv.invite_url}`;
+                        const link = inv.candidate_url || `${window.location.origin}/interview/${inv.invite_token}`;
 
                         return (
                           <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors">
+                            {/* Candidate Info */}
                             <td className="py-3 px-3">
                               <div className="font-semibold text-white">{inv.candidate_name}</div>
                               <div className="text-[11px] text-slate-400">{inv.candidate_email}</div>
+                              {inv.candidate_phone && (
+                                <div className="text-[10px] text-emerald-400/90 flex items-center gap-1 mt-0.5">
+                                  <Phone className="w-2.5 h-2.5" />
+                                  <span>{inv.candidate_phone}</span>
+                                </div>
+                              )}
                             </td>
-                            <td className="py-3 px-3 text-purple-300 font-medium">
-                              {inv.target_role}
-                              <div className="text-[10px] text-slate-500">{inv.difficulty} • {inv.mode}</div>
-                            </td>
+
+                            {/* Target Role & Score */}
                             <td className="py-3 px-3">
-                              <span
-                                className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${
-                                  statusColors[inv.status] || 'bg-slate-800 text-slate-400 border-slate-700'
-                                }`}
-                              >
-                                {inv.status.replace('_', ' ').toUpperCase()}
-                              </span>
+                              <div className="text-purple-300 font-medium">{inv.target_role}</div>
+                              <div className="text-[10px] text-slate-500">
+                                {inv.difficulty} • {inv.mode} • {inv.total_questions}Q
+                              </div>
+                              {inv.overall_score !== null && inv.overall_score !== undefined && (
+                                <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                                  <Award className="w-2.5 h-2.5" />
+                                  <span>{inv.overall_score.toFixed(1)}% Score</span>
+                                </div>
+                              )}
                             </td>
+
+                            {/* Status & Delivery Indicators */}
+                            <td className="py-3 px-3 space-y-1.5">
+                              <div>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${
+                                    statusColors[inv.status] || 'bg-slate-800 text-slate-400 border-slate-700'
+                                  }`}
+                                >
+                                  {inv.status.replace('_', ' ').toUpperCase()}
+                                </span>
+                              </div>
+
+                              {/* Delivery Badges */}
+                              <div className="flex flex-wrap gap-1">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-medium border flex items-center gap-1 ${
+                                    inv.email_status === 'sent'
+                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                      : inv.email_status === 'failed'
+                                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                                      : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                                  }`}
+                                  title={`Email delivery: ${inv.email_status || 'not_sent'}`}
+                                >
+                                  <Mail className="w-2.5 h-2.5" />
+                                  <span>
+                                    {inv.email_status === 'sent'
+                                      ? 'Email Sent'
+                                      : inv.email_status === 'failed'
+                                      ? 'Email Failed'
+                                      : 'Email Pending'}
+                                  </span>
+                                </span>
+
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-medium border flex items-center gap-1 ${
+                                    inv.whatsapp_status === 'sent'
+                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                      : 'bg-slate-800/80 text-slate-400 border-slate-700'
+                                  }`}
+                                  title={`WhatsApp share: ${inv.whatsapp_status || 'not_sent'}`}
+                                >
+                                  <MessageSquare className="w-2.5 h-2.5" />
+                                  <span>
+                                    {inv.whatsapp_status === 'sent' ? 'WA Sent' : 'WA Pending'}
+                                  </span>
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Dates */}
                             <td className="py-3 px-3 text-[11px] text-slate-400">
-                              {new Date(inv.expires_at).toLocaleDateString()}
+                              <div>Expires: {new Date(inv.expires_at).toLocaleDateString()}</div>
+                              <div className="text-[10px] text-slate-500">
+                                Created: {new Date(inv.created_at).toLocaleDateString()}
+                              </div>
                             </td>
+
+                            {/* Action Buttons */}
                             <td className="py-3 px-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
+                              <div className="flex items-center justify-end flex-wrap gap-1">
+                                {/* Send Email Button */}
+                                <button
+                                  onClick={() => handleSendEmail(inv.id)}
+                                  disabled={sendingEmailId === inv.id}
+                                  className="px-2 py-1 bg-purple-950/60 hover:bg-purple-900/60 text-purple-300 border border-purple-500/30 rounded text-[11px] font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+                                  title="Dispatch Invitation Email via SMTP"
+                                >
+                                  {sendingEmailId === inv.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+                                  ) : (
+                                    <Mail className="w-3 h-3 text-purple-400" />
+                                  )}
+                                  <span>Email</span>
+                                </button>
+
+                                {/* WhatsApp Button */}
+                                <button
+                                  onClick={() => openWhatsApp(inv)}
+                                  className="px-2 py-1 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 rounded text-[11px] font-medium flex items-center gap-1 transition-colors"
+                                  title="Open WhatsApp with pre-filled invitation"
+                                >
+                                  <MessageSquare className="w-3 h-3 text-emerald-400" />
+                                  <span>WhatsApp</span>
+                                </button>
+
+                                {/* Copy Link */}
                                 <button
                                   onClick={() => copyToClipboard(link)}
                                   className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[11px] font-medium flex items-center gap-1 transition-colors"
-                                  title="Copy Interview URL"
+                                  title="Copy Candidate Interview Link"
                                 >
                                   <Copy className="w-3 h-3 text-purple-400" />
                                   <span>Copy</span>
                                 </button>
+
+                                {/* Open/Test Link in New Tab */}
+                                <a
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition-colors"
+                                  title="Open / Test Link in New Tab"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+
+                                {/* View Report Button */}
+                                {inv.status === 'completed' && inv.interview_id && (
+                                  <button
+                                    onClick={() => onNavigate?.('report', { interviewId: inv.interview_id })}
+                                    className="px-2 py-1 bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-500/30 rounded text-[11px] font-medium flex items-center gap-1 transition-colors"
+                                    title="View Candidate Assessment Report"
+                                  >
+                                    <FileText className="w-3 h-3 text-indigo-400" />
+                                    <span>Report</span>
+                                  </button>
+                                )}
+
+                                {/* Audit Replay Button */}
                                 {inv.interview_id && (
                                   <button
                                     onClick={() => openReplayModal(inv.interview_id!)}
                                     className="p-1 hover:bg-slate-800 text-purple-400 hover:text-white rounded transition-colors"
-                                    title="Audit Candidate Replay"
+                                    title="Audit Candidate Session Replay"
                                   >
                                     <Play className="w-3.5 h-3.5" />
                                   </button>

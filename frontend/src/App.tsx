@@ -22,17 +22,31 @@ export const App: React.FC = () => {
   const [navParams, setNavParams] = useState<any>({});
 
   React.useEffect(() => {
-    // Detect invite token from URL query or path
+    // Detect invite token from URL query or path (/interview/:token, /join/:token, /invite/:token)
     const params = new URLSearchParams(window.location.search);
     const queryToken = params.get('token');
     const path = window.location.pathname;
     let inviteToken = queryToken;
-    if (!inviteToken && path.includes('/join/')) {
-      const parts = path.split('/join/');
-      if (parts.length > 1) {
-        inviteToken = parts[1].replace(/^\//, '').split('/')[0];
+
+    if (!inviteToken) {
+      if (path.includes('/interview/')) {
+        const parts = path.split('/interview/');
+        if (parts.length > 1) {
+          inviteToken = parts[1].replace(/^\//, '').split('/')[0];
+        }
+      } else if (path.includes('/join/')) {
+        const parts = path.split('/join/');
+        if (parts.length > 1) {
+          inviteToken = parts[1].replace(/^\//, '').split('/')[0];
+        }
+      } else if (path.includes('/invite/')) {
+        const parts = path.split('/invite/');
+        if (parts.length > 1) {
+          inviteToken = parts[1].replace(/^\//, '').split('/')[0];
+        }
       }
     }
+
     if (inviteToken) {
       setCurrentTab('candidate-join');
       setNavParams({ inviteToken });

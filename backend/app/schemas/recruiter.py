@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 class InterviewInviteCreate(BaseModel):
     candidate_name: str
     candidate_email: EmailStr
+    candidate_phone: Optional[str] = None
     target_role: str
     domain: Optional[str] = "Technology"
     experience_level: Optional[str] = "Mid-Level"
@@ -18,14 +19,19 @@ class InterviewInviteResponse(BaseModel):
     id: int
     invite_token: str
     invite_url: str
+    candidate_url: Optional[str] = None
     candidate_name: str
     candidate_email: str
+    candidate_phone: Optional[str] = None
     target_role: str
     mode: str
     difficulty: str
     language: str
     total_questions: int
     status: str
+    email_status: Optional[str] = "not_sent"
+    whatsapp_status: Optional[str] = "not_sent"
+    overall_score: Optional[float] = None
     created_at: datetime.datetime
     expires_at: datetime.datetime
     interview_id: Optional[int] = None

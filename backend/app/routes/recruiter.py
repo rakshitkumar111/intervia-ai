@@ -24,10 +24,17 @@ from app.schemas.recruiter import (
 )
 from app.services.auth_service import get_current_user
 from app.services.ai.engine import ai_engine
+from app.services.email_service import email_service
+from app.config import settings
 from app.utils.security import create_access_token, get_password_hash
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/recruiter", tags=["Recruiter Portal"])
+
+def build_candidate_url(invite_token: str) -> str:
+    """Builds the canonical public candidate-facing URL (no localhost in production)."""
+    base = settings.PUBLIC_FRONTEND_URL.rstrip("/") if settings.PUBLIC_FRONTEND_URL else "https://ai-interviewer.example.com"
+    return f"{base}/interview/{invite_token}"
 
 @router.post("/invites", response_model=InterviewInviteResponse, status_code=status.HTTP_201_CREATED)
 def create_interview_invite(
@@ -39,12 +46,14 @@ def create_interview_invite(
     invite_token = uuid.uuid4().hex
     expiry_days = payload.expires_in_days if payload.expires_in_days and payload.expires_in_days > 0 else 7
     expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=expiry_days)
+    candidate_phone = payload.candidate_phone.strip() if payload.candidate_phone else None
 
     invite = InterviewInvite(
         invite_token=invite_token,
         recruiter_id=current_user.id,
         candidate_name=payload.candidate_name.strip(),
         candidate_email=str(payload.candidate_email).strip().lower(),
+        candidate_phone=candidate_phone,
         target_role=payload.target_role.strip(),
         domain=payload.domain or "Technology",
         experience_level=payload.experience_level or "Mid-Level",
@@ -53,24 +62,33 @@ def create_interview_invite(
         language=payload.language or "English",
         total_questions=payload.total_questions or 5,
         status="pending",
+        email_status="not_sent",
+        whatsapp_status="not_sent",
         expires_at=expires_at
     )
     db.add(invite)
     db.commit()
     db.refresh(invite)
 
+    cand_url = build_candidate_url(invite.invite_token)
+
     return InterviewInviteResponse(
         id=invite.id,
         invite_token=invite.invite_token,
         invite_url=f"/join/{invite.invite_token}",
+        candidate_url=cand_url,
         candidate_name=invite.candidate_name,
         candidate_email=invite.candidate_email,
+        candidate_phone=invite.candidate_phone,
         target_role=invite.target_role,
         mode=invite.mode,
         difficulty=invite.difficulty,
         language=invite.language,
         total_questions=invite.total_questions,
         status=invite.status,
+        email_status=invite.email_status or "not_sent",
+        whatsapp_status=invite.whatsapp_status or "not_sent",
+        overall_score=None,
         created_at=invite.created_at,
         expires_at=invite.expires_at,
         interview_id=invite.interview_id
@@ -97,23 +115,94 @@ def get_invites(
             inv.status = "completed"
             db.commit()
         
+        cand_url = build_candidate_url(inv.invite_token)
+        score = inv.interview.overall_score if inv.interview else None
+
         results.append(InterviewInviteResponse(
             id=inv.id,
             invite_token=inv.invite_token,
             invite_url=f"/join/{inv.invite_token}",
+            candidate_url=cand_url,
             candidate_name=inv.candidate_name,
             candidate_email=inv.candidate_email,
+            candidate_phone=inv.candidate_phone,
             target_role=inv.target_role,
             mode=inv.mode,
             difficulty=inv.difficulty,
             language=inv.language,
             total_questions=inv.total_questions,
             status=inv.status,
+            email_status=inv.email_status or "not_sent",
+            whatsapp_status=inv.whatsapp_status or "not_sent",
+            overall_score=score,
             created_at=inv.created_at,
             expires_at=inv.expires_at,
             interview_id=inv.interview_id
         ))
     return results
+
+@router.post("/invites/{invite_id}/send-email")
+def send_invite_email(
+    invite_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Sends an official interview invitation email to the candidate via SMTP."""
+    invite = db.query(InterviewInvite).filter(InterviewInvite.id == invite_id).first()
+    if not invite:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found.")
+
+    if current_user.role != "admin" and invite.recruiter_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to dispatch this invitation.")
+
+    cand_url = build_candidate_url(invite.invite_token)
+
+    result = email_service.send_interview_invitation(
+        candidate_name=invite.candidate_name,
+        candidate_email=invite.candidate_email,
+        target_role=invite.target_role,
+        mode=invite.mode,
+        difficulty=invite.difficulty,
+        total_questions=invite.total_questions,
+        expires_at=invite.expires_at,
+        interview_url=cand_url,
+        recruiter_name=current_user.full_name or "AI Virtual Interviewer Team"
+    )
+
+    invite.email_status = result.get("email_status", "failed")
+    if result.get("success"):
+        invite.email_sent_at = datetime.datetime.utcnow()
+    db.commit()
+
+    return {
+        "success": result.get("success", False),
+        "email_status": invite.email_status,
+        "error": result.get("error")
+    }
+
+@router.post("/invites/{invite_id}/mark-whatsapp")
+def mark_whatsapp_sent(
+    invite_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Records that a WhatsApp invitation share link was generated/dispatched."""
+    invite = db.query(InterviewInvite).filter(InterviewInvite.id == invite_id).first()
+    if not invite:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found.")
+
+    if current_user.role != "admin" and invite.recruiter_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized.")
+
+    invite.whatsapp_status = "sent"
+    invite.whatsapp_sent_at = datetime.datetime.utcnow()
+    db.commit()
+
+    return {
+        "success": True,
+        "whatsapp_status": "sent",
+        "whatsapp_sent_at": invite.whatsapp_sent_at
+    }
 
 @router.get("/invite-info/{invite_token}")
 def get_invite_info(

@@ -52,6 +52,20 @@ class Settings:
     # Strict AI Mode
     STRICT_AI_MODE: bool = os.getenv("STRICT_AI_MODE", "false").lower() in ("true", "1", "yes")
 
+    # Public URLs for Candidate Invitations & Remote Access
+    PUBLIC_FRONTEND_URL: str = os.getenv("PUBLIC_FRONTEND_URL", "https://ai-interviewer.example.com").strip().rstrip("/")
+    BACKEND_API_URL: str = os.getenv("BACKEND_API_URL", "https://api-interviewer.example.com").strip().rstrip("/")
+
+    # SMTP Email Configuration (Gmail, SendGrid, Amazon SES, or custom SMTP)
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "").strip()
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "").strip()
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "").strip()
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "invitations@interviewer.ai").strip()
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "AI Virtual Interviewer Platform").strip()
+    SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() in ("true", "1", "yes")
+    SMTP_USE_SSL: bool = os.getenv("SMTP_USE_SSL", "false").lower() in ("true", "1", "yes")
+
     # D-ID Real-Time Photorealistic Human Avatar Configuration
     DID_API_KEY: str = os.getenv("DID_API_KEY", os.getenv("D_ID_API_KEY", "")).strip()
     DID_AGENT_ID: str = os.getenv("DID_AGENT_ID", "").strip()

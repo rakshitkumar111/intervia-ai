@@ -3,6 +3,7 @@ import { request } from './api';
 export interface InterviewInviteCreate {
   candidate_name: string;
   candidate_email: string;
+  candidate_phone?: string;
   target_role: string;
   domain?: string;
   experience_level?: string;
@@ -17,14 +18,19 @@ export interface InterviewInviteResponse {
   id: number;
   invite_token: string;
   invite_url: string;
+  candidate_url?: string;
   candidate_name: string;
   candidate_email: string;
+  candidate_phone?: string;
   target_role: string;
   mode: string;
   difficulty: string;
   language: string;
   total_questions: number;
   status: string;
+  email_status?: 'not_sent' | 'sent' | 'failed';
+  whatsapp_status?: 'not_sent' | 'sent';
+  overall_score?: number | null;
   created_at: string;
   expires_at: string;
   interview_id?: number | null;
@@ -118,4 +124,16 @@ export const recruiterApi = {
 
   getSessionReplay: (interviewId: number) =>
     request<CandidateSessionReplayResponse>(`/recruiter/replay/${interviewId}`),
+
+  sendInviteEmail: (inviteId: number) =>
+    request<{ success: boolean; email_status: 'sent' | 'failed'; error?: string }>(
+      `/recruiter/invites/${inviteId}/send-email`,
+      { method: 'POST' }
+    ),
+
+  markWhatsAppSent: (inviteId: number) =>
+    request<{ success: boolean; whatsapp_status: 'sent'; whatsapp_sent_at?: string }>(
+      `/recruiter/invites/${inviteId}/mark-whatsapp`,
+      { method: 'POST' }
+    ),
 };

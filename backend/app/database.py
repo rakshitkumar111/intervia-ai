@@ -70,6 +70,13 @@ def migrate_sqlite_schema():
             ("technical_gaps", "JSON DEFAULT '[]'"),
             ("communication_feedback", "TEXT"),
             ("recommended_topics", "JSON DEFAULT '[]'")
+        ],
+        "interview_invites": [
+            ("candidate_phone", "VARCHAR(50)"),
+            ("email_status", "VARCHAR(50) DEFAULT 'not_sent'"),
+            ("email_sent_at", "DATETIME"),
+            ("whatsapp_status", "VARCHAR(50) DEFAULT 'not_sent'"),
+            ("whatsapp_sent_at", "DATETIME")
         ]
     }
 
@@ -89,6 +96,6 @@ def migrate_sqlite_schema():
 
 def init_db():
     # Import all models to ensure they are registered with Base.metadata
-    from app.models import user, resume, interview, system
+    from app.models import user, resume, interview, system, recruiter
     Base.metadata.create_all(bind=engine)
     migrate_sqlite_schema()
