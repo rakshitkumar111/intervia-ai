@@ -93,6 +93,15 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
     }
   };
 
+  const getShareableUrl = (inv: { candidate_url?: string; invite_token?: string }) => {
+    if (!inv.invite_token) return '';
+    // If accessing via localhost, use localhost URL so local testing and demo always work reliably
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `${window.location.origin}/interview/${inv.invite_token}`;
+    }
+    return inv.candidate_url || `${window.location.origin}/interview/${inv.invite_token}`;
+  };
+
   const handleCreateInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.candidate_name || !form.candidate_email || !form.target_role) return;
@@ -101,7 +110,7 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
     setEmailFeedback(null);
     try {
       const res = await recruiterApi.createInvite(form);
-      const fullUrl = res.candidate_url || `${window.location.origin}/interview/${res.invite_token}`;
+      const fullUrl = getShareableUrl(res);
       setGeneratedLink(fullUrl);
       setLatestCreatedInvite(res);
 
@@ -164,7 +173,7 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
   };
 
   const openWhatsApp = async (inv: InterviewInviteResponse) => {
-    const fullUrl = inv.candidate_url || `${window.location.origin}/interview/${inv.invite_token}`;
+    const fullUrl = getShareableUrl(inv);
     const expiry = new Date(inv.expires_at).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -726,7 +735,7 @@ Good luck!`;
                           expired: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
                         };
 
-                        const link = inv.candidate_url || `${window.location.origin}/interview/${inv.invite_token}`;
+                        const link = getShareableUrl(inv);
 
                         return (
                           <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors">
