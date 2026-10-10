@@ -177,6 +177,11 @@ AI Virtual Interviewer Platform
         msg.attach(MIMEText(text_body, "plain", "utf-8"))
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
+        return cls._dispatch_mime(candidate_email, msg, context="Interview invitation")
+
+    @classmethod
+    def _dispatch_mime(cls, to_email: str, msg: MIMEMultipart, context: str = "Email") -> Dict[str, Any]:
+        """Dispatches MIME message with automatic STARTTLS and SSL fallback."""
         def _send(use_ssl: bool, port: int):
             if use_ssl:
                 srv = smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=25)
@@ -190,36 +195,128 @@ AI Virtual Interviewer Platform
             if settings.SMTP_USER and settings.SMTP_PASSWORD:
                 srv.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
 
-            srv.sendmail(settings.SMTP_FROM_EMAIL, [candidate_email], msg.as_string())
+            srv.sendmail(settings.SMTP_FROM_EMAIL, [to_email], msg.as_string())
             try:
                 srv.quit()
             except Exception:
                 pass
 
         try:
-            # First attempt: configured settings (e.g. port 587 STARTTLS)
             _send(settings.SMTP_USE_SSL, settings.SMTP_PORT)
-            logger.info(f"Interview invitation email dispatched successfully to {candidate_email}")
-            return {
-                "success": True,
-                "email_status": "sent"
-            }
+            logger.info(f"{context} dispatched successfully to {to_email}")
+            return {"success": True, "email_status": "sent"}
         except Exception as first_err:
-            logger.warning(f"Initial SMTP delivery attempt failed ({first_err}), attempting SSL fallback...")
+            logger.warning(f"Initial SMTP delivery failed for {to_email} ({first_err}), attempting SSL fallback...")
             try:
-                # Fallback: SSL on port 465 (handles networks where port 587 is throttled/blocked)
                 _send(use_ssl=True, port=465)
-                logger.info(f"Interview invitation email dispatched via SSL fallback to {candidate_email}")
-                return {
-                    "success": True,
-                    "email_status": "sent"
-                }
+                logger.info(f"{context} dispatched via SSL fallback to {to_email}")
+                return {"success": True, "email_status": "sent"}
             except Exception as e:
-                logger.error(f"Failed to deliver email via SMTP to {candidate_email}: {e}")
+                logger.error(f"Failed to deliver {context} to {to_email}: {e}")
                 return {
                     "success": False,
                     "error": f"SMTP Delivery Error: {str(e)}",
                     "email_status": "failed"
                 }
+
+    @classmethod
+    def send_interview_completion_notification(
+        cls,
+        recruiter_email: str,
+        candidate_name: str,
+        target_role: str,
+        overall_score: float,
+        verdict: str,
+        interview_id: int,
+        report_url: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Dispatches an assessment completion notification to the recruiter."""
+        if not cls.is_configured():
+            logger.warning("Email dispatch skipped: SMTP not configured.")
+            return {"success": False, "error": "SMTP not configured", "email_status": "skipped"}
+
+        sender_header = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
+        subject = f"Interview Completed: {candidate_name} – {target_role} ({overall_score}/100)"
+        view_url = report_url or f"{settings.PUBLIC_FRONTEND_URL}/report/{interview_id}"
+
+        text_body = f"""Hello,
+
+Candidate {candidate_name} has just completed their AI-evaluated interview session.
+
+Assessment Summary:
+- Candidate: {candidate_name}
+- Target Role: {target_role}
+- Overall Score: {overall_score}/100
+- Hiring Committee Verdict: {verdict}
+- Interview ID: #{interview_id}
+
+View Full Report:
+{view_url}
+
+Best regards,
+AI Virtual Interviewer Platform
+"""
+
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #090d16; color: #f8fafc; margin: 0; padding: 24px;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+    <div style="background: linear-gradient(135deg, #059669 0%, #0d9488 100%); padding: 32px 24px; text-align: center;">
+      <h1 style="margin: 0; font-size: 22px; color: #ffffff; font-weight: 800;">
+        Assessment Completed
+      </h1>
+      <p style="margin: 6px 0 0 0; font-size: 13px; color: #ccfbf1; font-weight: 500;">
+        Candidate Interview Finished & Evaluated
+      </p>
+    </div>
+    <div style="padding: 32px 28px;">
+      <p style="font-size: 15px; color: #cbd5e1; margin-bottom: 20px;">
+        Candidate <strong>{candidate_name}</strong> has completed the interview for <strong style="color: #34d399;">{target_role}</strong>.
+      </p>
+      <div style="background-color: #030712; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 13px;">
+          <tr style="border-bottom: 1px solid #1e293b;">
+            <td style="color: #94a3b8;">Candidate Name</td>
+            <td align="right" style="color: #f8fafc; font-weight: 600;">{candidate_name}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1e293b;">
+            <td style="color: #94a3b8;">Target Role</td>
+            <td align="right" style="color: #34d399; font-weight: 600;">{target_role}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1e293b;">
+            <td style="color: #94a3b8;">Overall Composite Score</td>
+            <td align="right" style="color: #38bdf8; font-weight: 700; font-size: 15px;">{overall_score}/100</td>
+          </tr>
+          <tr>
+            <td style="color: #94a3b8;">AI Committee Verdict</td>
+            <td align="right" style="color: #a855f7; font-weight: 700;">{verdict}</td>
+          </tr>
+        </table>
+      </div>
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="{view_url}" style="display: inline-block; background: linear-gradient(135deg, #059669 0%, #0d9488 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.4);">
+          View Full Evaluation Report &rarr;
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 24px;">
+        AI Virtual Interviewer Platform &bull; Automated Recruiter Dispatch
+      </p>
+    </div>
+  </div>
+</body>
+</html>"""
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = sender_header
+        msg["To"] = recruiter_email
+        msg.attach(MIMEText(text_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        return cls._dispatch_mime(recruiter_email, msg, context="Interview completion notification")
 
 email_service = EmailService()

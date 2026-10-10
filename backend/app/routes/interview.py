@@ -35,7 +35,8 @@ from app.schemas.interview import (
 from app.services.auth_service import get_current_user
 from app.services.ai.engine import ai_engine
 from app.services.pdf_service import PDFReportGenerator
-from app.config import REPORT_DIR
+from app.services.email_service import EmailService
+from app.config import REPORT_DIR, settings
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/interview", tags=["Interview Lifecycle"])
@@ -473,7 +474,7 @@ def complete_interview(
         corr_val = e.correctness_score if e else 0.0
         comm_val = e.communication_score if e else 0.0
         prob_val = e.problem_solving_score if e else 0.0
-        conf_val = e.confidence_score if e else 0.0
+        conf_val = e.confidence_score if (e and e.confidence_score and e.confidence_score > 0) else (comm_val if comm_val > 0 else 7.5)
 
         if e:
             total_score += score_val
@@ -505,7 +506,7 @@ def complete_interview(
     avg_corr = round(corr_sum / max(1, evaluated_count), 1)
     avg_comm = round(comm_sum / max(1, evaluated_count), 1)
     avg_prob = round(prob_sum / max(1, evaluated_count), 1)
-    avg_conf = round(conf_sum / max(1, evaluated_count), 1)
+    avg_conf = round(conf_sum / max(1, evaluated_count), 1) if conf_sum > 0 else avg_comm
 
     interview.overall_score = avg_overall
 
@@ -581,6 +582,19 @@ def complete_interview(
     pdf_filename = f"report_interview_{interview.id}_{datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')}.pdf"
     pdf_path = REPORT_DIR / pdf_filename
     background_tasks.add_task(PDFReportGenerator.generate_report_pdf, report, str(pdf_path))
+
+    # Dispatch Recruiter Notification Email in Background
+    if invite and invite.recruiter and invite.recruiter.email and EmailService.is_configured():
+        background_tasks.add_task(
+            EmailService.send_interview_completion_notification,
+            recruiter_email=invite.recruiter.email,
+            candidate_name=interview.candidate_name,
+            target_role=interview.target_role,
+            overall_score=avg_overall,
+            verdict=verdict,
+            interview_id=interview.id,
+            report_url=f"{settings.PUBLIC_FRONTEND_URL}/report/{interview.id}"
+        )
 
     return report
 
