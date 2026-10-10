@@ -137,10 +137,11 @@ class AIEngine:
         target_role: str,
         domain: Optional[str] = "Technology",
         experience_level: Optional[str] = "Mid-Level",
-        language: Optional[str] = "English"
+        language: Optional[str] = "English",
+        candidate_name: Optional[str] = "Candidate"
     ) -> Dict[str, Any]:
         return self._provider.synthesize_final_report(
-            "Candidate", target_role, "Universal", "General", "Medium", qa_pairs, domain, experience_level, language
+            candidate_name or "Candidate", target_role, "Universal", "General", "Medium", qa_pairs, domain, experience_level, language
         )
 
     def analyze_job_description(

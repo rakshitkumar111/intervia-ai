@@ -879,7 +879,7 @@ class FallbackAIProvider(BaseAIProvider):
         else:
             verdict = "Reject"
 
-        # Unique strengths and weaknesses
+        # Unique strengths and weaknesses — prefer stored arrays, derive from scores when empty
         all_strengths = []
         all_weaknesses = []
         all_missing = []
@@ -887,6 +887,28 @@ class FallbackAIProvider(BaseAIProvider):
             all_strengths.extend(e.get("strengths", []))
             all_weaknesses.extend(e.get("weaknesses", []))
             all_missing.extend(e.get("missing_concepts", []))
+
+        # Derive strengths/weaknesses from score data when per-question arrays were empty
+        if not all_strengths:
+            score = e.get("score", 0) if evaluations else 0
+            tech = e.get("technical_score", 0) if evaluations else 0
+            comm = e.get("communication_score", 0) if evaluations else 0
+            if tech >= 8.0 or (tech >= 0.8 and tech <= 10.0):
+                all_strengths.append(f"Strong technical knowledge in {target_role} domain")
+            if comm >= 8.0 or (comm >= 0.8 and comm <= 10.0):
+                all_strengths.append("Clear and articulate communication style")
+            if overall_score >= 75:
+                all_strengths.append("Demonstrates comprehensive understanding of core concepts")
+            if overall_score >= 85:
+                all_strengths.append("Exceptional problem-solving depth with production-level examples")
+            elif overall_score >= 65:
+                all_strengths.append("Solid grasp of architectural patterns and system design")
+
+        if not all_weaknesses:
+            if overall_score < 90:
+                all_weaknesses.append("Could provide more specific metrics and production benchmarks")
+            if not all_missing:
+                all_weaknesses.append(f"Consider exploring advanced {target_role} edge cases and trade-off analysis")
 
         unique_strengths = list(dict.fromkeys(all_strengths))[:4]
         unique_weaknesses = list(dict.fromkeys(all_weaknesses))[:3]

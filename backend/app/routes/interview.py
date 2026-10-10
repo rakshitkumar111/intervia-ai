@@ -515,7 +515,8 @@ def complete_interview(
         target_role=interview.target_role,
         domain=interview.domain,
         experience_level=interview.experience_level,
-        language=interview.language
+        language=interview.language,
+        candidate_name=interview.candidate_name
     )
 
     # Determine Hiring Readiness
