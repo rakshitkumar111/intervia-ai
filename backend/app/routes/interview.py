@@ -730,24 +730,32 @@ def download_pdf_report(
     db: Session = Depends(get_db)
 ):
     """Downloads the generated PDF evaluation report."""
-    interview = db.query(Interview).filter(
-        Interview.id == interview_id,
-        (Interview.user_id == current_user.id) | (current_user.role == "admin")
-    ).first()
-    if not interview or not interview.report:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not ready or interview not found.")
+    interview = db.query(Interview).filter(Interview.id == interview_id).first()
+    if not interview:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Interview not found.")
+
+    is_owner = (interview.user_id == current_user.id)
+    is_admin = (current_user.role == "admin")
+    is_recruiter = (current_user.role == "recruiter")
+    invite = db.query(InterviewInvite).filter(InterviewInvite.interview_id == interview_id).first()
+    is_invite_recruiter = bool(invite and (invite.recruiter_id == current_user.id or is_recruiter))
+
+    if not (is_owner or is_admin or is_invite_recruiter or is_recruiter):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+    if not interview.report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not ready.")
 
     report = interview.report
-    if not report.pdf_report_path or not Path(report.pdf_report_path).exists():
-        # Generate immediately if not already created
-        pdf_filename = f"report_interview_{interview.id}.pdf"
-        pdf_path = REPORT_DIR / pdf_filename
+    pdf_filename = f"interview_assessment_{interview.id}.pdf"
+    pdf_path = REPORT_DIR / pdf_filename
+    if not pdf_path.exists():
         PDFReportGenerator.generate_report_pdf(report, str(pdf_path))
-        report.pdf_report_path = str(pdf_path)
-        db.commit()
+    report.pdf_report_path = str(pdf_path)
+    db.commit()
 
     return FileResponse(
-        path=report.pdf_report_path,
+        path=str(pdf_path),
         filename=f"Assessment_Report_Interview_{interview.id}.pdf",
         media_type="application/pdf"
     )

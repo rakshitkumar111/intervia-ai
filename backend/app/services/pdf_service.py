@@ -17,16 +17,20 @@ class PDFReportGenerator:
         interview_data: Dict[str, Any],
         candidate_data: Dict[str, Any],
         report_data: Dict[str, Any],
-        questions_eval_data: List[Dict[str, Any]]
+        questions_eval_data: List[Dict[str, Any]],
+        output_path: Any = None
     ) -> str:
         """Renders universal interview assessment into a downloadable PDF report file."""
         interview_id = interview_data.get("id", 1)
-        filename = f"interview_assessment_{interview_id}.pdf"
-        output_path = REPORT_DIR / filename
+        if not output_path:
+            filename = f"interview_assessment_{interview_id}.pdf"
+            output_file = REPORT_DIR / filename
+        else:
+            output_file = Path(output_path)
 
         try:
             doc = SimpleDocTemplate(
-                str(output_path),
+                str(output_file),
                 pagesize=letter,
                 rightMargin=36,
                 leftMargin=36,
@@ -270,7 +274,7 @@ class PDFReportGenerator:
                     story.append(Spacer(1, 8))
 
             doc.build(story)
-            logger.info(f"Generated Universal AI Interviewer PDF report: {output_path}")
+            logger.info(f"Generated Universal AI Interviewer PDF report: {output_file}")
             return f"/api/interview/report/{interview_id}/download-pdf"
 
         except Exception as e:
@@ -306,4 +310,4 @@ class PDFReportGenerator:
             "communication_feedback": getattr(report, "communication_feedback", "")
         }
         questions_eval_data = getattr(report, "question_breakdown", []) or []
-        return cls.generate_interview_pdf(interview_data, candidate_data, report_data, questions_eval_data)
+        return cls.generate_interview_pdf(interview_data, candidate_data, report_data, questions_eval_data, output_path=output_path)

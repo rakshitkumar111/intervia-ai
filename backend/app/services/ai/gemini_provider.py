@@ -72,7 +72,7 @@ class GeminiAIProvider(BaseAIProvider):
                 if getattr(self, "_cooldown_until", 0) > time.time():
                     logger.warning("Gemini provider in cooldown; skipping API call.")
                     return None
-                with httpx.Client(timeout=2.5) as client:
+                with httpx.Client(timeout=15.0) as client:
                     response = client.post(url, json=payload)
                     if response.status_code == 200:
                         data = response.json()
@@ -81,7 +81,7 @@ class GeminiAIProvider(BaseAIProvider):
                             content = candidates[0].get("content", {})
                             parts = content.get("parts", [])
                             if parts:
-                                raw_text = parts[0].get("text", "")
+                                raw_text = "".join(p.get("text", "") for p in parts if "text" in p)
                                 parsed = self._clean_json_response(raw_text)
                                 if parsed is not None:
                                     return parsed
@@ -98,9 +98,9 @@ class GeminiAIProvider(BaseAIProvider):
                         return None
 
             except httpx.TimeoutException:
-                logger.warning(f"Gemini API request timed out (8.0s). Fast-failing to Universal Fallback Engine.")
+                logger.warning("Gemini API request timed out (15.0s). Fast-failing to Universal Fallback Engine.")
                 if settings.STRICT_AI_MODE:
-                    raise RuntimeError("Gemini API request timed out after 8 seconds.")
+                    raise RuntimeError("Gemini API request timed out after 15 seconds.")
                 return None
             except Exception as e:
                 logger.warning(f"Gemini API invocation error: {e}. Fast-failing to fallback engine.")

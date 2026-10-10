@@ -354,8 +354,8 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
   };
 
   const redirectToLocalhost = () => {
-    const port = window.location.port ? `:${window.location.port}` : '';
-    window.location.href = `http://localhost${port}${window.location.pathname}${window.location.search}`;
+    const port = window.location.port || '5173';
+    window.location.href = `http://localhost:${port}${window.location.pathname}${window.location.search}`;
   };
 
   const getStatusBadge = () => {
@@ -425,7 +425,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
                 <Globe className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-100">Switch to localhost:5174</h3>
+              <h3 className="text-sm font-bold text-slate-100">Switch to localhost:5173</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Your D-ID Studio allowed domain is configured for <code className="bg-slate-800 px-1 py-0.5 rounded text-amber-300">http://localhost</code>.
               </p>
@@ -435,7 +435,7 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
                   className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-xs font-semibold text-white rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open on http://localhost:5174</span>
+                  <span>Open on http://localhost:5173</span>
                 </button>
                 <button
                   onClick={() => triggerTerminalFallback('Domain mismatch')}
