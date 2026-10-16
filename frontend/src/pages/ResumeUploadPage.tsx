@@ -80,17 +80,17 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 flex items-center gap-2.5">
-          <FileText className="w-7 h-7 text-brand-400" />
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2.5">
+          <FileText className="w-7 h-7 text-purple-600" />
           <span>Resume NLP Analysis & Extraction</span>
         </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1">
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Upload your CV/Resume to automatically extract technical competencies, projects, and configure a tailored interview.
         </p>
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-xs flex items-center gap-2">
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -106,24 +106,24 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center ${
+            className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all bg-white shadow-sm flex flex-col items-center justify-center ${
               dragActive
-                ? 'border-brand-400 bg-brand-500/10'
-                : 'border-slate-800 hover:border-slate-700'
+                ? 'border-purple-500 bg-purple-50/50'
+                : 'border-slate-200 hover:border-purple-300'
             }`}
           >
-            <div className="w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center mb-4">
               <FileUp className="w-7 h-7" />
             </div>
 
-            <h3 className="text-base font-bold text-slate-100 mb-1">
+            <h3 className="text-base font-bold text-slate-900 mb-1">
               Upload Resume (PDF, DOCX, TXT)
             </h3>
-            <p className="text-xs text-slate-400 mb-5 max-w-xs">
+            <p className="text-xs text-slate-500 mb-5 max-w-xs">
               Drag & drop your resume file here or click below to browse from your computer.
             </p>
 
-            <label className="cursor-pointer px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-600/25 transition-all">
+            <label className="cursor-pointer px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-purple-600/25 transition-all">
               <span>{isUploading ? 'Parsing with NLP...' : 'Browse Files'}</span>
               <input
                 type="file"
@@ -140,13 +140,13 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
           </div>
 
           {/* Uploaded Resumes List */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Uploaded Documents ({resumes.length})
             </h4>
 
             {resumes.length === 0 ? (
-              <p className="text-xs text-slate-500 py-3 italic">No resume uploaded yet.</p>
+              <p className="text-xs text-slate-400 py-3 italic">No resume uploaded yet.</p>
             ) : (
               <div className="space-y-2">
                 {resumes.map((r) => (
@@ -155,29 +155,41 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
                     onClick={() => setSelectedResume(r)}
                     className={`p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
                       selectedResume?.id === r.id
-                        ? 'bg-brand-500/10 border-brand-500/40 text-brand-300'
-                        : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-850 text-slate-300'
+                        ? 'bg-purple-50 border-purple-300 text-purple-900 shadow-xs'
+                        : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100 text-slate-700'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <FileText className="w-4 h-4 text-brand-400 flex-shrink-0" />
+                      <FileText className="w-4 h-4 text-purple-600 flex-shrink-0" />
                       <div className="truncate">
-                        <p className="text-xs font-semibold truncate">{r.filename}</p>
+                        <p className="text-xs font-semibold truncate text-slate-800">{r.filename}</p>
                         <p className="text-[10px] text-slate-500">
                           {r.parsed_skills.length} skills identified
                         </p>
                       </div>
                     </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(r.id);
-                      }}
-                      className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigate('setup-interview', { resumeId: r.id, resume: r });
+                        }}
+                        title="Interview with this Resume"
+                        className="p-1.5 text-purple-600 hover:text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(r.id);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -188,24 +200,24 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
         {/* Right Column: Parsed Resume NLP Card */}
         <div className="lg:col-span-7">
           {selectedResume ? (
-            <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
               {/* Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-slate-100">{selectedResume.filename}</h3>
-                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold rounded-md">
+                    <h3 className="text-lg font-bold text-slate-900">{selectedResume.filename}</h3>
+                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold rounded-md">
                       NLP Parsed
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Uploaded on {new Date(selectedResume.uploaded_at).toLocaleString()}
                   </p>
                 </div>
 
                 <button
-                  onClick={() => onNavigate('setup-interview', { resumeId: selectedResume.id })}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand-600 to-blue-600 hover:from-brand-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-600/30 transition-all"
+                  onClick={() => onNavigate('setup-interview', { resumeId: selectedResume.id, resume: selectedResume })}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-600/25 transition-all"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Interview with this Resume</span>
@@ -215,15 +227,15 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
 
               {/* Extracted Skills Badges */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-brand-400" />
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-purple-600" />
                   <span>Extracted Technical Competencies ({selectedResume.parsed_skills.length})</span>
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedResume.parsed_skills.map((skill: string, idx: number) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-slate-950 text-slate-200 border border-slate-800 hover:border-brand-500/40 rounded-lg text-xs font-medium transition-colors"
+                      className="px-3 py-1 bg-purple-50 text-purple-800 border border-purple-200/80 rounded-lg text-xs font-medium transition-colors"
                     >
                       {skill}
                     </span>
@@ -234,15 +246,15 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
               {/* Extracted Projects */}
               {selectedResume.parsed_projects && selectedResume.parsed_projects.length > 0 && (
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Briefcase className="w-3.5 h-3.5 text-purple-400" />
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
                     <span>Identified Key Projects</span>
                   </h4>
                   <div className="space-y-2">
                     {selectedResume.parsed_projects.map((proj: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
-                        <p className="text-xs font-bold text-slate-200">{proj.title || `Project #${idx + 1}`}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{proj.description}</p>
+                      <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <p className="text-xs font-bold text-slate-800">{proj.title || `Project #${idx + 1}`}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{proj.description}</p>
                       </div>
                     ))}
                   </div>
@@ -251,16 +263,16 @@ export const ResumeUploadPage: React.FC<ResumeUploadPageProps> = ({ onNavigate }
 
               {/* Executive Summary */}
               {selectedResume.summary && (
-                <div className="p-4 bg-brand-500/5 border border-brand-500/20 rounded-2xl">
-                  <p className="text-xs font-semibold text-brand-300 mb-1">AI Resume Synthesis:</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">{selectedResume.summary}</p>
+                <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl">
+                  <p className="text-xs font-bold text-purple-800 mb-1">AI Resume Synthesis:</p>
+                  <p className="text-xs text-slate-700 leading-relaxed">{selectedResume.summary}</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-              <FileText className="w-12 h-12 text-slate-600 mb-3" />
-              <p className="text-sm font-semibold">Select or upload a resume to view NLP insights</p>
+            <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 flex flex-col items-center justify-center shadow-sm">
+              <FileText className="w-12 h-12 text-slate-300 mb-3" />
+              <p className="text-sm font-semibold text-slate-600">Select or upload a resume to view NLP insights</p>
             </div>
           )}
         </div>

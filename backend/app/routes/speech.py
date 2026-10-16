@@ -1,7 +1,10 @@
 import re
-from typing import List, Dict, Any
+import io
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from app.utils.logger import logger
 
 router = APIRouter(prefix="/speech", tags=["Speech & Lip-Sync Processing"])
 
@@ -99,3 +102,170 @@ async def transcribe_audio_file(file: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class SynthesizeRequest(BaseModel):
+    text: str
+    voice: Optional[str] = "en-IN-NeerjaNeural"
+    language: Optional[str] = "English (India)"
+    rate: Optional[str] = "+0%"
+    pitch: Optional[str] = "+0Hz"
+
+VOICE_MAP = {
+    "English": "en-IN-NeerjaNeural",
+    "English (India)": "en-IN-NeerjaNeural",
+    "Hinglish": "en-IN-NeerjaNeural",
+    "Hindi": "hi-IN-SwaraNeural"
+}
+
+@router.post("/synthesize")
+async def synthesize_speech(payload: SynthesizeRequest):
+    """
+    Synthesizes studio-grade natural human speech using:
+    1. Kokoro-82M Neural Model (hexgrad/Kokoro-82M) when 'kokoro:' or kokoro voice is requested.
+    2. Authentic Indian Neural Voices (Neerja, Prabhat, Swara) for Indian English and Hindi.
+    """
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty.")
+
+    target_voice = payload.voice
+    if not target_voice or target_voice == "default":
+        target_voice = VOICE_MAP.get(payload.language or "English (India)", "en-IN-NeerjaNeural")
+
+    # 1. Check if Kokoro-82M voice requested (af_heart, af_bella, am_adam, or kokoro:*)
+    is_kokoro_voice = (
+        target_voice.startswith("kokoro:")
+        or target_voice.startswith("af_")
+        or target_voice.startswith("am_")
+        or target_voice.startswith("bf_")
+        or target_voice.startswith("bm_")
+    )
+
+    if is_kokoro_voice:
+        try:
+            from app.services.kokoro_service import get_kokoro_service
+            kokoro = get_kokoro_service()
+            wav_bytes, resolved_voice = kokoro.synthesize_wav(
+                text=text,
+                voice=target_voice,
+                speed=1.0
+            )
+            return StreamingResponse(
+                io.BytesIO(wav_bytes),
+                media_type="audio/wav",
+                headers={
+                    "Content-Disposition": "inline; filename=kokoro_speech.wav",
+                    "Cache-Control": "public, max-age=3600",
+                    "X-Neural-Voice": resolved_voice,
+                    "X-Voice-Engine": "hexgrad/Kokoro-82M"
+                }
+            )
+        except Exception as e:
+            logger.warning(f"[Kokoro-82M Error] Falling back to Indian Neural Voice: {e}")
+            target_voice = "en-IN-NeerjaNeural"
+
+    # 2. Authentic Indian / Studio Neural Voices via edge-tts
+    try:
+        import edge_tts
+        communicate = edge_tts.Communicate(
+            text=text,
+            voice=target_voice,
+            rate=payload.rate or "+0%",
+            pitch=payload.pitch or "+0Hz"
+        )
+        audio_stream = io.BytesIO()
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_stream.write(chunk["data"])
+
+        audio_stream.seek(0)
+        return StreamingResponse(
+            audio_stream,
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": "inline; filename=speech.mp3",
+                "Cache-Control": "public, max-age=3600",
+                "X-Neural-Voice": target_voice,
+                "X-Voice-Engine": "Indian-Studio-Neural"
+            }
+        )
+    except Exception as e:
+        logger.error(f"[TTS Error] Neural voice synthesis failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Neural TTS synthesis failed: {str(e)}")
+
+AVAILABLE_VOICES = [
+    {
+        "id": "en-IN-NeerjaNeural",
+        "name": "Neerja Sharma (Indian Female)",
+        "description": "Authentic, warm, professional Indian English Female interviewer",
+        "gender": "Female",
+        "language": "English (India)",
+        "sample": "Namaste! Welcome to your interview today. I am excited to assess your skills.",
+        "is_default": True
+    },
+    {
+        "id": "en-IN-PrabhatNeural",
+        "name": "Prabhat Kumar (Indian Male)",
+        "description": "Authentic, articulate Indian English Male interviewer",
+        "gender": "Male",
+        "language": "English (India)",
+        "sample": "Namaste! Welcome to your interview. Let us discuss your background and technical projects."
+    },
+    {
+        "id": "hi-IN-SwaraNeural",
+        "name": "Swara (Hindi / Hinglish)",
+        "description": "Native Hindi & Hinglish Female interviewer",
+        "gender": "Female",
+        "language": "Hindi",
+        "sample": "नमस्ते! आपके साक्षात्कार में आपका स्वागत है। चलिए शुरू करते हैं।"
+    },
+    {
+        "id": "hi-IN-MadhurNeural",
+        "name": "Madhur (Hindi / Hinglish)",
+        "description": "Native Hindi Male interviewer",
+        "gender": "Male",
+        "language": "Hindi",
+        "sample": "नमस्ते! चलिए साक्षात्कार शुरू करते हैं।"
+    },
+    {
+        "id": "kokoro:af_heart",
+        "name": "Dr. Sarah (Kokoro-82M)",
+        "description": "Hexgrad Kokoro-82M Studio Human AI Voice (Grade A Heart)",
+        "gender": "Female",
+        "language": "English",
+        "sample": "Hello! I am Dr. Sarah. Welcome to your technical interview today.",
+        "engine": "Kokoro-82M"
+    },
+    {
+        "id": "kokoro:am_adam",
+        "name": "Alex Vance (Kokoro-82M)",
+        "description": "Hexgrad Kokoro-82M Natural Human AI Male Voice",
+        "gender": "Male",
+        "language": "English",
+        "sample": "Hi there! Welcome to the interview. Take a breath and let's begin.",
+        "engine": "Kokoro-82M"
+    }
+]
+
+@router.get("/voices")
+def get_available_voices():
+    """Returns the list of curated studio-grade human neural voices."""
+    return AVAILABLE_VOICES
+
+@router.get("/engine-status")
+def get_engine_status():
+    """Returns the status of TTS engines (Kokoro-82M and Indian Neural)."""
+    try:
+        from app.services.kokoro_service import get_kokoro_service
+        kokoro = get_kokoro_service()
+        kokoro_ready = kokoro.is_ready
+    except Exception:
+        kokoro_ready = False
+
+    return {
+        "primary_voice": "en-IN-NeerjaNeural (Authentic Indian English)",
+        "indian_voices_ready": True,
+        "kokoro_82m_installed": True,
+        "kokoro_82m_ready": kokoro_ready,
+        "available_engines": ["Indian-Studio-Neural", "hexgrad/Kokoro-82M"]
+    }

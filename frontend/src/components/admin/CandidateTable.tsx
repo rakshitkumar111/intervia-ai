@@ -7,28 +7,28 @@ interface CandidateTableProps {
 
 export const CandidateTable: React.FC<CandidateTableProps> = ({ candidates }) => {
   return (
-    <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-lg">
+    <div className="rounded-2xl p-6 shadow-sm border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-100">Registered Candidates Directory</h3>
-          <p className="text-xs text-slate-400">Manage candidate accounts and track individual performance</p>
+          <h3 className="text-base font-bold" style={{ color: '#1a1a2e' }}>Registered Candidates Directory</h3>
+          <p className="text-xs" style={{ color: '#6b6b80' }}>Manage candidate accounts and track individual performance</p>
         </div>
-        <span className="px-3 py-1 bg-brand-500/10 text-brand-400 border border-brand-500/20 rounded-full text-xs font-semibold">
+        <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(108, 92, 231, 0.08)', color: '#6c5ce7', border: '1px solid rgba(108, 92, 231, 0.2)' }}>
           {candidates.length} Registered
         </span>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-              <th className="pb-3">Candidate</th>
-              <th className="pb-3">Target Role</th>
-              <th className="pb-3">Experience</th>
-              <th className="pb-3">Interviews</th>
-              <th className="pb-3">Avg Score</th>
-              <th className="pb-3">Status</th>
-              <th className="pb-3">Joined</th>
+            <tr className="uppercase text-[10px] tracking-wider font-bold" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
+              <th className="pb-3 px-3">Candidate</th>
+              <th className="pb-3 px-3">Target Role</th>
+              <th className="pb-3 px-3">Experience</th>
+              <th className="pb-3 px-3">Interviews</th>
+              <th className="pb-3 px-3">Avg Score</th>
+              <th className="pb-3 px-3">Status</th>
+              <th className="pb-3 px-3">Joined</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">

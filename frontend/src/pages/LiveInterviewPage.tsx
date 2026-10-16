@@ -12,7 +12,7 @@ import { SpeechInputArea } from '../components/interview/SpeechInputArea';
 import { AvatarControls } from '../components/avatar/AvatarControls';
 import { CodeEditorWorkspace } from '../components/coding/CodeEditorWorkspace';
 import { SystemDesignWhiteboard } from '../components/architecture/SystemDesignWhiteboard';
-import { AlertCircle, Activity, Sparkles, Briefcase, Volume2, ShieldCheck, UserCheck, Video, Lightbulb, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle, Code2, Share2, ArrowRight } from 'lucide-react';
+import { AlertCircle, Activity, Sparkles, Briefcase, Volume2, ShieldCheck, UserCheck, Video, Lightbulb, CheckCircle2, ChevronDown, ChevronUp, AlertTriangle, Code2, Share2, ArrowRight, Maximize, Minimize } from 'lucide-react';
 
 export type InterviewPhase = 
   | 'INITIALIZING'
@@ -61,11 +61,37 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
 
   // HireVue Submission State
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const isSubmittedRef = useRef<boolean>(false);
   const [submissionTime, setSubmissionTime] = useState<string>('');
 
-  // 1. SINGLE AUTHORITATIVE INTERVIEWER MODE: Defaults to 'DID_HD'
-  const [interviewerMode, setInterviewerMode] = useState<AvatarProviderMode>('DID_HD');
-  const interviewerModeRef = useRef<AvatarProviderMode>('DID_HD');
+  // Full Screen State & Tab Switch Proctoring State
+  const [isCameraInCorner, setIsCameraInCorner] = useState<boolean>(true);
+  const [cameraCornerPos, setCameraCornerPos] = useState<'bottom-right' | 'top-right'>('bottom-right');
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      return !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+    }
+    return false;
+  });
+  const [tabSwitchCount, setTabSwitchCount] = useState<number>(0);
+  const tabSwitchCountRef = useRef<number>(0);
+  const lastTabSwitchTimestampRef = useRef<number>(0);
+  const [isAutoSubmittedDueToViolations, setIsAutoSubmittedDueToViolations] = useState<boolean>(false);
+  const isAutoSubmittedDueToViolationsRef = useRef<boolean>(false);
+  const [tabWarningModal, setTabWarningModal] = useState<{
+    show: boolean;
+    count: number;
+    isFinal: boolean;
+  }>({ show: false, count: 0, isFinal: false });
+
+  // 1. SINGLE AUTHORITATIVE INTERVIEWER MODE: Defaults to 'REALISTIC_LOCAL' (Studio Human Neural Voice)
+  const [interviewerMode, setInterviewerMode] = useState<AvatarProviderMode>('REALISTIC_LOCAL');
+  const interviewerModeRef = useRef<AvatarProviderMode>('REALISTIC_LOCAL');
 
   // Session-Level Guard Flags (Persisted across re-renders)
   const didConnectionAttemptedRef = useRef<boolean>(false);
@@ -84,6 +110,14 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
   const askedQuestionIdsRef = useRef<number[]>([]);
 
   // Keep refs in sync
+  useEffect(() => {
+    isSubmittedRef.current = isSubmitted;
+  }, [isSubmitted]);
+
+  useEffect(() => {
+    isAutoSubmittedDueToViolationsRef.current = isAutoSubmittedDueToViolations;
+  }, [isAutoSubmittedDueToViolations]);
+
   useEffect(() => {
     currentQuestionRef.current = currentQuestion;
   }, [currentQuestion]);
@@ -109,6 +143,7 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
   // Avatar & Speech State
   const [avatarState, setAvatarState] = useState<AvatarState>('IDLE');
   const [currentViseme, setCurrentViseme] = useState<VisemeType>('REST');
+  const activeSpeechTextRef = useRef<string>('');
   const [activeSpeechText, setActiveSpeechText] = useState<string>('');
 
   // Candidate Transcript State (Separated & Reset Per Turn)
@@ -138,26 +173,163 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
     candidateFinalTranscript + (candidateInterimTranscript ? ' ' + candidateInterimTranscript : '')
   ).trim();
 
-  // Passive Anti-Cheating & Integrity Listeners
+  // Full Screen Request Helper
+  const requestFullScreen = useCallback(async () => {
+    try {
+      speechEngine.unlockAudio();
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        const docEl = document.documentElement as any;
+        if (docEl.requestFullscreen) {
+          await docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) {
+          await docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) {
+          await docEl.mozRequestFullScreen();
+        } else if (docEl.msRequestFullscreen) {
+          await docEl.msRequestFullscreen();
+        }
+      }
+      setIsFullscreen(true);
+    } catch (err) {
+      console.warn('[FULLSCREEN] Request requires user gesture:', err);
+    }
+  }, []);
+
+  const exitFullScreen = useCallback(async () => {
+    try {
+      const doc = document as any;
+      if (doc.fullscreenElement && doc.exitFullscreen) {
+        await doc.exitFullscreen();
+      } else if (doc.webkitFullscreenElement && doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      } else if (doc.mozFullScreenElement && doc.mozCancelFullScreen) {
+        await doc.mozCancelFullScreen();
+      } else if (doc.msFullscreenElement && doc.msExitFullscreen) {
+        await doc.msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    } catch (err) {
+      console.warn('[FULLSCREEN] Exit error:', err);
+    }
+  }, []);
+
+  // Auto Fullscreen on Interview Open + Re-entry Listeners
   useEffect(() => {
-    if (!session || phase === 'COMPLETED' || phase === 'FINAL_EVALUATION') return;
+    // 1. Initial attempt to enter fullscreen immediately when interview opens
+    requestFullScreen();
+
+    // 2. Also try entering fullscreen on user click / touch / keyboard interactions
+    const handleGesture = () => {
+      speechEngine.unlockAudio();
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        requestFullScreen();
+      }
+    };
+    window.addEventListener('click', handleGesture);
+    window.addEventListener('pointerdown', handleGesture);
+    window.addEventListener('keydown', handleGesture);
+
+    // 3. Track Fullscreen Change events across all browser engines
+    const handleFullscreenChange = () => {
+      const isFs = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isFs);
+      if (!isFs && phaseRef.current !== 'COMPLETED' && phaseRef.current !== 'FINAL_EVALUATION' && !isSubmittedRef.current) {
+        console.warn('[PROCTORING] Fullscreen exited during live interview!');
+        if (session) {
+          interviewApi.logIntegrityEvent(session.id, {
+            event_type: 'FULLSCREEN_EXIT',
+            details: { phase: phaseRef.current, timestamp: new Date().toISOString() }
+          }).catch(console.warn);
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('pointerdown', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, [requestFullScreen, session]);
+
+  // Strict Tab-Switch & Window Blur Proctoring Listener (> 2 switches = Auto Submit)
+  useEffect(() => {
+    if (!session || phase === 'COMPLETED' || phase === 'FINAL_EVALUATION' || isSubmitted) return;
+
+    const handleIntegritySwitch = (source: 'TAB_SWITCH' | 'WINDOW_BLUR') => {
+      if (phaseRef.current === 'COMPLETED' || phaseRef.current === 'FINAL_EVALUATION' || isSubmittedRef.current) return;
+
+      const now = Date.now();
+      // Debounce: prevent counting blur + visibilitychange within 2 seconds as 2 separate switches
+      if (now - lastTabSwitchTimestampRef.current < 2000) {
+        return;
+      }
+      lastTabSwitchTimestampRef.current = now;
+
+      const newCount = tabSwitchCountRef.current + 1;
+      tabSwitchCountRef.current = newCount;
+      setTabSwitchCount(newCount);
+      setIntegrityEventCount((prev) => prev + 1);
+
+      console.warn(`[PROCTORING] ${source} violation #${newCount} detected.`);
+
+      // Log to backend database
+      interviewApi.logIntegrityEvent(session.id, {
+        event_type: source,
+        details: {
+          switch_count: newCount,
+          phase: phaseRef.current,
+          timestamp: new Date().toISOString()
+        }
+      }).catch(console.warn);
+
+      // STRICT USER REQUIREMENT: tab switch 2 baar se jyada hua (> 2) to automatic submit!
+      if (newCount > 2) {
+        console.error('[PROCTORING] Tab switch limit exceeded (> 2 violations). AUTOMATICALLY SUBMITTING INTERVIEW NOW!');
+        setIsAutoSubmittedDueToViolations(true);
+        isAutoSubmittedDueToViolationsRef.current = true;
+
+        interviewApi.logIntegrityEvent(session.id, {
+          event_type: 'TERMINATED_TAB_SWITCH_LIMIT_EXCEEDED',
+          details: {
+            violations: newCount,
+            timestamp: new Date().toISOString()
+          }
+        }).catch(console.warn);
+
+        // Immediate automatic submission
+        handleFinishInterview(session.id);
+      } else {
+        // Show Warning Modal (Warning 1 or Final Warning 2)
+        setTabWarningModal({
+          show: true,
+          count: newCount,
+          isFinal: newCount === 2
+        });
+      }
+    };
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setIntegrityEventCount((prev) => prev + 1);
-        interviewApi.logIntegrityEvent(session.id, {
-          event_type: 'TAB_SWITCH',
-          details: { state: phaseRef.current, timestamp: new Date().toISOString() }
-        }).catch(console.warn);
+        handleIntegritySwitch('TAB_SWITCH');
       }
     };
 
     const handleWindowBlur = () => {
-      setIntegrityEventCount((prev) => prev + 1);
-      interviewApi.logIntegrityEvent(session.id, {
-        event_type: 'WINDOW_BLUR',
-        details: { state: phaseRef.current, timestamp: new Date().toISOString() }
-      }).catch(console.warn);
+      handleIntegritySwitch('WINDOW_BLUR');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -167,7 +339,7 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [session, phase]);
+  }, [session, phase, isSubmitted]);
 
   // 1. Candidate Speech-to-Text Activation (Gated strictly to CANDIDATE_LISTENING)
   const startCandidateListening = useCallback((preserveTranscript = false) => {
@@ -363,29 +535,12 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
           currentQuestionRef.current = firstQ;
           setCurrentQuestionIndex(1);
 
-          // Check if D-ID credentials are configured
-          let isDIDConfigured = false;
-          try {
-            const avatarStatus = await avatarApi.getStatus();
-            isDIDConfigured = !!(avatarStatus.did_configured && avatarStatus.agent_id && avatarStatus.client_key);
-          } catch (e) {
-            isDIDConfigured = false;
-          }
-
-          if (isDIDConfigured) {
-            console.log('[D-ID] Agent credentials present. Initializing D-ID HD Real Human Stream...');
-            setInterviewerMode('DID_HD');
-            interviewerModeRef.current = 'DID_HD';
-            didFallbackActiveRef.current = false;
-            transitionToPhase('D_ID_CONNECTING');
-          } else {
-            console.log('[D-ID] Credentials not found. Starting with Realistic Female Interviewer.');
-            setInterviewerMode('REALISTIC_LOCAL');
-            interviewerModeRef.current = 'REALISTIC_LOCAL';
-            didFallbackActiveRef.current = true;
-            setFallbackNotice('HD Avatar unavailable — using Realistic Female Interviewer.');
-            speakInterviewer(firstQ, 'REALISTIC_LOCAL');
-          }
+          // Start directly with Studio Indian Neural Interviewer (Neerja / Kokoro-82M)
+          console.log('[INTERVIEW] Starting with Studio Indian Neural Interviewer (Neerja / Kokoro-82M).');
+          setInterviewerMode('REALISTIC_LOCAL');
+          interviewerModeRef.current = 'REALISTIC_LOCAL';
+          didFallbackActiveRef.current = false;
+          speakInterviewer(firstQ, 'REALISTIC_LOCAL');
         }
       } catch (err: any) {
         if (!isMounted) return;
@@ -671,20 +826,39 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
         <div className="max-w-xl w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden space-y-6">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500" />
 
-          {/* Success Check Badge */}
+          {/* Submission Banner Badge */}
           <div className="flex flex-col items-center text-center space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-[11px] font-semibold text-emerald-300 uppercase tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5" /> Assessment Submission Confirmed
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Assessment Completed!
-            </h1>
-            <p className="text-sm text-slate-300 max-w-md">
-              Thank you, <strong className="text-white font-semibold">{candidateDisplayName}</strong>. Your recorded responses and assessment telemetry have been securely transmitted to the recruitment team.
-            </p>
+            {isAutoSubmittedDueToViolations ? (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/10">
+                  <AlertTriangle className="w-8 h-8" />
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/60 border border-rose-800 text-[11px] font-semibold text-rose-300 uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Auto-Submitted (Integrity Violation)
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Assessment Automatically Submitted
+                </h1>
+                <p className="text-sm text-slate-300 max-w-md">
+                  Candidate <strong className="text-white font-semibold">{candidateDisplayName}</strong>: Your session was automatically terminated and submitted because you <strong className="text-rose-400">switched tabs more than 2 times</strong> during the proctored interview.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-[11px] font-semibold text-emerald-300 uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5" /> Assessment Submission Confirmed
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Assessment Completed!
+                </h1>
+                <p className="text-sm text-slate-300 max-w-md">
+                  Thank you, <strong className="text-white font-semibold">{candidateDisplayName}</strong>. Your recorded responses and assessment telemetry have been securely transmitted to the recruitment team.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Submission Receipt Card */}
@@ -699,7 +873,7 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
             </div>
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
               <span className="text-slate-400">Recorded Responses</span>
-              <span className="text-slate-200 font-medium">{session.total_questions} of {session.total_questions} Questions Completed</span>
+              <span className="text-slate-200 font-medium">{session.total_questions} Questions in Session</span>
             </div>
             <div className="flex justify-between items-center pb-2.5 border-b border-slate-800/80">
               <span className="text-slate-400">Submission Timestamp</span>
@@ -707,10 +881,17 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-400">Assessment Status</span>
-              <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Submitted for Hiring Review
-              </span>
+              {isAutoSubmittedDueToViolations ? (
+                <span className="inline-flex items-center gap-1.5 text-rose-400 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                  Auto-Submitted (Tab Limit Exceeded)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Submitted for Hiring Review
+                </span>
+              )}
             </div>
           </div>
 
@@ -750,6 +931,123 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Strict Proctoring Tab Switch Modal */}
+      {tabWarningModal.show && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className={`max-w-md w-full bg-slate-900 border rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 text-center ${
+            tabWarningModal.isFinal ? 'border-rose-500/50 shadow-rose-500/20' : 'border-amber-500/50 shadow-amber-500/20'
+          }`}>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${
+              tabWarningModal.isFinal
+                ? 'bg-rose-500/10 border border-rose-500/30 text-rose-400'
+                : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+            }`}>
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                tabWarningModal.isFinal
+                  ? 'bg-rose-950/80 text-rose-300 border border-rose-800'
+                  : 'bg-amber-950/80 text-amber-300 border border-amber-800'
+              }`}>
+                Proctoring Alert • Switch {tabWarningModal.count} of 2
+              </div>
+              <h3 className="text-xl font-bold text-white">
+                {tabWarningModal.isFinal ? '🚨 FINAL WARNING: Tab Switch Detected' : '⚠️ Warning: Tab Switch Detected'}
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {tabWarningModal.isFinal ? (
+                  <>
+                    You have navigated away from the interview screen <strong className="text-rose-400 font-bold">2 times</strong>.
+                    <br />
+                    <span className="block mt-2 p-2.5 bg-rose-950/50 rounded-xl border border-rose-800/60 text-rose-200 font-bold">
+                      ONE MORE TAB SWITCH (&gt; 2) WILL AUTOMATICALLY TERMINATE AND SUBMIT YOUR ASSESSMENT IMMEDIATELY!
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    You switched away from the assessment screen. You have used <strong className="text-amber-400 font-bold">1 of 2 allowed tab switches</strong>.
+                    <br />
+                    <span className="block mt-2 text-slate-400">
+                      Please remain focused on this screen. Exceeding 2 switches will automatically submit your interview.
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                setTabWarningModal({ show: false, count: 0, isFinal: false });
+                requestFullScreen();
+              }}
+              className={`w-full py-3 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2 ${
+                tabWarningModal.isFinal
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
+                  : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+              }`}
+            >
+              <Maximize className="w-4 h-4" />
+              <span>I Understand — Return to Interview (Full Screen)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mandatory Full Screen Lockdown Overlay */}
+      {!isFullscreen && !isSubmitted && (
+        <div
+          onClick={() => {
+            speechEngine.unlockAudio();
+            requestFullScreen();
+          }}
+          className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer select-none transition-all animate-in fade-in duration-300"
+        >
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              speechEngine.unlockAudio();
+              requestFullScreen();
+            }}
+            className="max-w-md w-full bg-slate-900/95 border border-purple-500/40 rounded-3xl p-8 shadow-2xl shadow-purple-900/40 space-y-6 text-center"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center mx-auto shadow-xl shadow-purple-600/30 animate-pulse">
+              <Maximize className="w-10 h-10 text-white" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                Full Screen Mode Required
+              </h2>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                For AI proctoring and assessment integrity, this interview must be conducted in <strong className="text-purple-300">Full Screen Mode</strong>.
+              </p>
+              <p className="text-[11px] text-purple-400 font-medium">
+                Click anywhere on the screen or the button below to enter.
+              </p>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                speechEngine.unlockAudio();
+                requestFullScreen();
+              }}
+              className="w-full py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-sm rounded-2xl shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Maximize className="w-5 h-5" />
+              <span>Enter Full Screen (Start Interview)</span>
+            </button>
+
+            <div className="flex items-center justify-center gap-2 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-xl py-2 px-3">
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Switching tabs more than 2 times will automatically submit your assessment.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fallback Notice Banner */}
       {fallbackNotice && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2.5 text-amber-300 text-xs flex items-center justify-between shadow-lg">
@@ -777,10 +1075,38 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
             <span className="truncate max-w-[180px]">{session.target_role}</span>
           </div>
 
+          {/* Full Screen Mode Indicator / Toggle */}
+          <button
+            onClick={isFullscreen ? exitFullScreen : requestFullScreen}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all ${
+              isFullscreen
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+            }`}
+            title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+          >
+            {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+            <span>{isFullscreen ? 'FULL SCREEN: ACTIVE' : 'ENTER FULL SCREEN'}</span>
+          </button>
+
+          {/* Tab Switch Proctoring Telemetry */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-400">TABS:</span>
+            <span className={`font-bold px-2 py-0.5 rounded text-[11px] border ${
+              tabSwitchCount === 0
+                ? 'bg-slate-900 text-slate-300 border-slate-800'
+                : tabSwitchCount === 1
+                ? 'bg-amber-950/80 text-amber-300 border-amber-800/60'
+                : 'bg-rose-950/80 text-rose-300 border-rose-800/60 animate-pulse'
+            }`}>
+              {tabSwitchCount}/2 Switches
+            </span>
+          </div>
+
           {integrityEventCount > 0 && (
             <div className="hidden md:flex items-center gap-1 bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20 text-[11px]">
               <AlertTriangle className="w-3 h-3" />
-              <span>Integrity Logs: {integrityEventCount}</span>
+              <span>Logs: {integrityEventCount}</span>
             </div>
           )}
         </div>
@@ -793,7 +1119,7 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
                 ? 'bg-purple-950/80 text-purple-300 border border-purple-800/60'
                 : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60'
             }`}>
-              {interviewerMode === 'DID_HD' ? 'D-ID HD HUMAN' : interviewerMode}
+              {interviewerMode === 'DID_HD' ? 'D-ID HD HUMAN' : 'STUDIO NEURAL HUMAN'}
             </span>
           </div>
 
@@ -819,7 +1145,7 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
                 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/60'
                 : 'bg-slate-900 text-slate-500 border border-slate-800'
             }`}>
-              {phase === 'D_ID_CONNECTING' ? 'CONNECTING' : phase === 'INTERVIEWER_SPEAKING' ? (interviewerMode === 'DID_HD' ? 'D-ID FEMALE (JennyNeural)' : 'LOCAL FEMALE') : 'OFF'}
+              {phase === 'D_ID_CONNECTING' ? 'CONNECTING' : phase === 'INTERVIEWER_SPEAKING' ? (interviewerMode === 'DID_HD' ? 'D-ID FEMALE (JennyNeural)' : 'STUDIO NEURAL (Jenny)') : 'OFF'}
             </span>
           </div>
 
@@ -862,6 +1188,19 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
           >
             <Share2 className="w-3.5 h-3.5 text-purple-400" />
             <span>{showWhiteboard ? 'Hide Whiteboard' : 'Open Whiteboard'}</span>
+          </button>
+
+          <button
+            onClick={() => setIsCameraInCorner((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+              isCameraInCorner
+                ? 'bg-purple-950/80 text-purple-300 border-purple-800/60 shadow-sm'
+                : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+            }`}
+            title="Toggle camera between Corner Floating PiP and Grid mode"
+          >
+            <Video className="w-3.5 h-3.5 text-purple-400" />
+            <span>{isCameraInCorner ? 'Camera: Corner PiP' : 'Camera: Grid'}</span>
           </button>
         </div>
       </div>
@@ -934,31 +1273,65 @@ export const LiveInterviewPage: React.FC<LiveInterviewPageProps> = ({ interviewI
             </div>
           )}
 
-          {/* Right Meta Split: Candidate Video + Session Progress */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <CandidateVideoFeed
-              isCamActive={isCamActive}
-              candidateName={user?.full_name || 'Candidate'}
-              targetRole={session.target_role}
-              interviewId={session.id}
-              onProctoringAlert={(eventType, details) => {
-                setIntegrityEventCount((prev) => prev + 1);
-                interviewApi.logIntegrityEvent(session.id, {
-                  event_type: eventType,
-                  details,
-                }).catch((err) => console.warn('Integrity log error:', err));
-              }}
-            />
+          {/* Right Meta Split: Candidate Video in Corner PiP + Session Progress */}
+          {isCameraInCorner ? (
+            <div className="w-full space-y-4">
+              <SessionProgress
+                questions={session.questions}
+                currentIndex={currentQuestionIndex - 1}
+                totalDurationSeconds={totalSessionTimer}
+                mode={session.mode}
+                category={session.domain || session.category || 'General'}
+                difficulty={session.difficulty}
+              />
 
-            <SessionProgress
-              questions={session.questions}
-              currentIndex={currentQuestionIndex - 1}
-              totalDurationSeconds={totalSessionTimer}
-              mode={session.mode}
-              category={session.domain || session.category || 'General'}
-              difficulty={session.difficulty}
-            />
-          </div>
+              {/* Candidate Camera in Corner PiP */}
+              <CandidateVideoFeed
+                isCamActive={isCamActive}
+                candidateName={user?.full_name || 'Candidate'}
+                targetRole={session.target_role}
+                interviewId={session.id}
+                isCorner={true}
+                cornerPosition={cameraCornerPos}
+                onChangeCornerPosition={setCameraCornerPos}
+                onToggleCorner={() => setIsCameraInCorner(false)}
+                onProctoringAlert={(eventType, details) => {
+                  setIntegrityEventCount((prev) => prev + 1);
+                  interviewApi.logIntegrityEvent(session.id, {
+                    event_type: eventType,
+                    details,
+                  }).catch((err) => console.warn('Integrity log error:', err));
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CandidateVideoFeed
+                isCamActive={isCamActive}
+                candidateName={user?.full_name || 'Candidate'}
+                targetRole={session.target_role}
+                interviewId={session.id}
+                isCorner={false}
+                onToggleCorner={() => setIsCameraInCorner(true)}
+                onProctoringAlert={(eventType, details) => {
+                  setIntegrityEventCount((prev) => prev + 1);
+                  interviewApi.logIntegrityEvent(session.id, {
+                    event_type: eventType,
+                    details,
+                  }).catch((err) => console.warn('Integrity log error:', err));
+                }}
+              />
+
+              <SessionProgress
+                questions={session.questions}
+                currentIndex={currentQuestionIndex - 1}
+                totalDurationSeconds={totalSessionTimer}
+                mode={session.mode}
+                category={session.domain || session.category || 'General'}
+                difficulty={session.difficulty}
+              />
+            </div>
+          )}
         </div>
       </div>
 

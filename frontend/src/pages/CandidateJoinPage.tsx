@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { recruiterApi } from '../services/recruiterApi';
 import { useAuth } from '../context/AuthContext';
+import { speechEngine } from '../services/speechEngine';
 
 interface CandidateJoinPageProps {
   inviteToken: string;
@@ -81,6 +82,25 @@ export const CandidateJoinPage: React.FC<CandidateJoinPageProps> = ({ inviteToke
   };
 
   const handleStartInterview = async () => {
+    // 1. MUST execute synchronously on direct user click gesture for browser security policy
+    speechEngine.unlockAudio();
+    try {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        const docEl = document.documentElement as any;
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch((e: any) => console.warn('Fullscreen entry:', e));
+        } else if (docEl.webkitRequestFullscreen) {
+          docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) {
+          docEl.mozRequestFullScreen();
+        } else if (docEl.msRequestFullscreen) {
+          docEl.msRequestFullscreen();
+        }
+      }
+    } catch (fsErr) {
+      console.warn('Fullscreen entry error on join click:', fsErr);
+    }
+
     setIsStarting(true);
     try {
       const joinData = await recruiterApi.joinInterviewByToken(inviteToken);
@@ -197,31 +217,51 @@ export const CandidateJoinPage: React.FC<CandidateJoinPageProps> = ({ inviteToke
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8" style={{ background: '#f0eff5', color: '#1a1a2e' }}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Top Header Card */}
-        <div className="bg-gradient-to-r from-purple-950/40 via-slate-900 to-slate-900 border border-purple-500/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div
+          className="rounded-3xl p-6 sm:p-8 relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #ffffff 0%, #faf9fd 60%, #f4f0ff 100%)',
+            border: '1px solid #e5e3ee',
+            boxShadow: '0 4px 20px rgba(108, 92, 231, 0.06)',
+          }}
+        >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-bold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-400" /> OFFICIAL CANDIDATE ASSESSMENT
+                <span
+                  className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5"
+                  style={{
+                    background: 'rgba(108, 92, 231, 0.08)',
+                    border: '1px solid rgba(108, 92, 231, 0.2)',
+                    color: '#6c5ce7',
+                  }}
+                >
+                  <Sparkles className="w-3.5 h-3.5" style={{ color: '#6c5ce7' }} /> OFFICIAL CANDIDATE ASSESSMENT
                 </span>
-                <span className="text-xs text-slate-400 flex items-center gap-1">
+                <span className="text-xs flex items-center gap-1" style={{ color: '#6b6b80' }}>
                   <Clock className="w-3 h-3" /> Valid until {new Date(inviteInfo.expires_at).toLocaleDateString()}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: '#1a1a2e' }}>
                 Welcome, {inviteInfo.candidate_name}!
               </h1>
-              <p className="text-sm text-slate-300 mt-1">
+              <p className="text-sm mt-1" style={{ color: '#6b6b80' }}>
                 You have been invited for the{' '}
-                <strong className="text-purple-400 font-semibold">{inviteInfo.target_role}</strong> assessment.
+                <strong className="font-semibold" style={{ color: '#6c5ce7' }}>{inviteInfo.target_role}</strong> assessment.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-600/30">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #6c5ce7, #818cf8)',
+                  boxShadow: '0 8px 20px rgba(108, 92, 231, 0.25)',
+                }}
+              >
                 <Bot className="w-8 h-8 text-white" />
               </div>
             </div>
@@ -323,7 +363,7 @@ export const CandidateJoinPage: React.FC<CandidateJoinPageProps> = ({ inviteToke
           <div className="text-xs text-slate-300 space-y-1">
             <h4 className="font-bold text-white text-sm">Automated AI Integrity Proctoring</h4>
             <p className="text-slate-400 leading-relaxed">
-              This session uses live computer vision and audio telemetry to monitor eye gaze, browser tab focus, and background speech. Please remain in full screen, maintain eye contact with the interviewer, and avoid switching browser windows during the assessment.
+              This session uses live computer vision, tab monitoring, and full screen enforcement. <strong className="text-amber-400">Switching browser tabs more than 2 times will automatically terminate and submit your assessment immediately.</strong> Please remain in full screen and keep your camera active throughout.
             </p>
           </div>
         </div>

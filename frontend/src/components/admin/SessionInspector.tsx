@@ -14,25 +14,25 @@ export const SessionInspector: React.FC<SessionInspectorProps> = ({ interviews }
   };
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-lg">
+    <div className="rounded-2xl p-6 shadow-sm border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-100">Live Interview Sessions Monitor</h3>
-          <p className="text-xs text-slate-400">All sessions conducted across candidates</p>
+          <h3 className="text-base font-bold" style={{ color: '#1a1a2e' }}>Live Interview Sessions Monitor</h3>
+          <p className="text-xs" style={{ color: '#6b6b80' }}>All sessions conducted across candidates</p>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-              <th className="pb-3">Candidate</th>
-              <th className="pb-3">Session Mode</th>
-              <th className="pb-3">Domain Category</th>
-              <th className="pb-3">Difficulty</th>
-              <th className="pb-3">Score</th>
-              <th className="pb-3">AI Verdict</th>
-              <th className="pb-3 text-right">PDF Report</th>
+            <tr className="uppercase text-[10px] tracking-wider font-bold" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
+              <th className="pb-3 px-3">Candidate</th>
+              <th className="pb-3 px-3">Session Mode</th>
+              <th className="pb-3 px-3">Domain Category</th>
+              <th className="pb-3 px-3">Difficulty</th>
+              <th className="pb-3 px-3">Score</th>
+              <th className="pb-3 px-3">AI Verdict</th>
+              <th className="pb-3 px-3 text-right">PDF Report</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">

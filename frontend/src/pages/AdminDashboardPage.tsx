@@ -478,32 +478,32 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             {/* Users Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+            <div className="overflow-x-auto rounded-2xl border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
+              <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
+                <thead className="uppercase tracking-wider text-[10px]" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
                   <tr>
-                    <th className="py-3 px-4">User</th>
-                    <th className="py-3 px-4">Role</th>
-                    <th className="py-3 px-4">Target Role / Exp</th>
-                    <th className="py-3 px-4 text-center">Interviews</th>
-                    <th className="py-3 px-4 text-center">Avg Score</th>
-                    <th className="py-3 px-4 text-center">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4 font-bold">User</th>
+                    <th className="py-3 px-4 font-bold">Role</th>
+                    <th className="py-3 px-4 font-bold">Target Role / Exp</th>
+                    <th className="py-3 px-4 text-center font-bold">Interviews</th>
+                    <th className="py-3 px-4 text-center font-bold">Avg Score</th>
+                    <th className="py-3 px-4 text-center font-bold">Status</th>
+                    <th className="py-3 px-4 text-right font-bold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y" style={{ borderColor: '#f0eff5' }}>
                   {filteredUsers.map((u) => {
                     const roleColor: Record<string, string> = {
-                      admin: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-                      recruiter: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-                      candidate: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+                      admin: 'bg-amber-50 text-amber-700 border-amber-200',
+                      recruiter: 'bg-purple-50 text-purple-700 border-purple-200',
+                      candidate: 'bg-blue-50 text-blue-700 border-blue-200',
                     };
 
                     return (
-                      <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
+                      <tr key={u.id} className="hover:bg-purple-50/40 transition-colors" style={{ borderBottom: '1px solid #f0eff5' }}>
                         <td className="py-3.5 px-4">
-                          <div className="font-semibold text-white">{u.full_name}</div>
-                          <div className="text-[11px] text-slate-400">{u.email}</div>
+                          <div className="font-semibold" style={{ color: '#1a1a2e' }}>{u.full_name}</div>
+                          <div className="text-[11px]" style={{ color: '#6b6b80' }}>{u.email}</div>
                         </td>
                         <td className="py-3.5 px-4">
                           <select
@@ -573,36 +573,36 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+            <div className="overflow-x-auto rounded-2xl border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
+              <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
+                <thead className="uppercase tracking-wider text-[10px]" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
                   <tr>
-                    <th className="py-3 px-4">ID</th>
-                    <th className="py-3 px-4">Candidate & Role</th>
-                    <th className="py-3 px-4">Mode / Diff</th>
-                    <th className="py-3 px-4 text-center">Score</th>
-                    <th className="py-3 px-4 text-center">Integrity Trust</th>
-                    <th className="py-3 px-4 text-center">Status / Verdict</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4 font-bold">ID</th>
+                    <th className="py-3 px-4 font-bold">Candidate & Role</th>
+                    <th className="py-3 px-4 font-bold">Mode / Diff</th>
+                    <th className="py-3 px-4 text-center font-bold">Score</th>
+                    <th className="py-3 px-4 text-center font-bold">Integrity Trust</th>
+                    <th className="py-3 px-4 text-center font-bold">Status / Verdict</th>
+                    <th className="py-3 px-4 text-right font-bold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y" style={{ borderColor: '#f0eff5' }}>
                   {filteredInterviews.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-500">#{item.id}</td>
+                    <tr key={item.id} className="hover:bg-purple-50/40 transition-colors" style={{ borderBottom: '1px solid #f0eff5' }}>
+                      <td className="py-3.5 px-4 font-mono" style={{ color: '#6b6b80' }}>#{item.id}</td>
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-white">{item.candidate_name}</div>
-                        <div className="text-[11px] text-purple-400">{item.target_role}</div>
+                        <div className="font-semibold" style={{ color: '#1a1a2e' }}>{item.candidate_name}</div>
+                        <div className="text-[11px]" style={{ color: '#6c5ce7' }}>{item.target_role}</div>
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300">
+                      <td className="py-3.5 px-4" style={{ color: '#4a4a60' }}>
                         <div>{item.mode}</div>
-                        <span className="text-[10px] text-slate-500">{item.difficulty}</span>
+                        <span className="text-[10px]" style={{ color: '#9b9bae' }}>{item.difficulty}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-white">
+                      <td className="py-3.5 px-4 text-center font-mono font-bold" style={{ color: '#1a1a2e' }}>
                         {item.overall_score > 0 ? `${item.overall_score}%` : '-'}
                       </td>
                       <td className="py-3.5 px-4 text-center font-mono">
-                        <span className={item.integrity_score < 75 ? 'text-rose-400' : 'text-emerald-400'}>
+                        <span className={item.integrity_score < 75 ? 'text-rose-600 font-semibold' : 'text-emerald-600 font-semibold'}>
                           {item.integrity_score}%
                         </span>
                       </td>

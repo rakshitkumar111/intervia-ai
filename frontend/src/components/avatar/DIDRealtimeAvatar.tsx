@@ -146,17 +146,11 @@ export const DIDRealtimeAvatar: React.FC<DIDRealtimeAvatarProps> = ({
 
       console.log(`[D-ID] Connecting to Real-Time Human Stream (Generation #${currentGen})...`);
 
-      // Check allowed origin
+      // Non-localhost support for mobile / public tunnels
       const currentHost = window.location.hostname;
       const isLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
-
-      if (!isLocalhost) {
-        console.warn('[D-ID Stream] Allowed domain mismatch detected.');
-        if (isMountedRef.current && connectionGenRef.current === currentGen) {
-          setStatus('domain_mismatch');
-        }
-        isConnectionInProgress = false;
-        return;
+      if (!isLocalhost && !currentHost.includes('trycloudflare.com')) {
+        console.info('[D-ID Stream] Connecting via external/mobile host:', currentHost);
       }
 
       // Fetch avatar telemetry — backend returns full client_key for SDK use

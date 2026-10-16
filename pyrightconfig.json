@@ -1,0 +1,16 @@
+{
+  "include": [
+    "backend"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    ".git"
+  ],
+  "pythonVersion": "3.10",
+  "pythonPlatform": "Windows",
+  "extraPaths": [
+    "backend",
+    "C:\\Users\\raksh\\AppData\\Local\\Programs\\Python\\Python310\\Lib\\site-packages"
+  ]
+}

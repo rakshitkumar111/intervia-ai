@@ -28,13 +28,30 @@ from app.services.email_service import email_service
 from app.config import settings
 from app.utils.security import create_access_token, get_password_hash
 from app.utils.logger import logger
+from app.services.tunnel_service import tunnel_service
 
 router = APIRouter(prefix="/recruiter", tags=["Recruiter Portal"])
 
 def build_candidate_url(invite_token: str) -> str:
-    """Builds the canonical public candidate-facing URL (no localhost in production)."""
-    base = settings.PUBLIC_FRONTEND_URL.rstrip("/") if settings.PUBLIC_FRONTEND_URL else "https://ai-interviewer.example.com"
+    """Builds the canonical candidate-facing URL using live auto-generated Cloudflare tunnel."""
+    auto_url = tunnel_service.public_url
+    if auto_url and "trycloudflare.com" in auto_url:
+        return f"{auto_url.rstrip('/')}/interview/{invite_token}"
+
+    base = settings.PUBLIC_FRONTEND_URL.rstrip("/") if settings.PUBLIC_FRONTEND_URL else "http://localhost:5174"
+    if "example.com" in base:
+        base = "http://localhost:5174"
     return f"{base}/interview/{invite_token}"
+
+@router.get("/tunnel-status")
+def get_tunnel_status():
+    """Returns the live auto-generated Cloudflare tunnel status and public URL."""
+    url = tunnel_service.public_url
+    return {
+        "is_active": bool(url),
+        "public_url": url or settings.PUBLIC_FRONTEND_URL,
+        "is_installed": bool(tunnel_service.find_cloudflared_executable())
+    }
 
 @router.post("/invites", response_model=InterviewInviteResponse, status_code=status.HTTP_201_CREATED)
 def create_interview_invite(

@@ -14,7 +14,9 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { RecruiterPortalPage } from './pages/RecruiterPortalPage';
 import { CandidateJoinPage } from './pages/CandidateJoinPage';
+import { HireBytePage } from './pages/HireBytePage';
 import { recruiterApi } from './services/recruiterApi';
+import './hirebyte.css';
 
 export const App: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -55,15 +57,13 @@ export const App: React.FC = () => {
 
   const handleNavigate = (tab: string, param?: any) => {
     setCurrentTab(tab);
-    if (param) {
-      setNavParams(param);
-    }
+    setNavParams(param || {});
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 text-slate-400">
-        <div className="w-12 h-12 border-4 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: '#f0eff5', color: '#6b6b80' }}>
+        <div className="w-12 h-12 border-4 rounded-full animate-spin" style={{ borderColor: 'rgba(108,92,231,0.2)', borderTopColor: '#6c5ce7' }} />
         <span className="text-sm font-semibold">Loading Virtual Interviewer Platform...</span>
       </div>
     );
@@ -73,9 +73,20 @@ export const App: React.FC = () => {
   const isProtected = ['dashboard', 'resume', 'setup-interview', 'live-interview', 'report', 'profile', 'admin', 'recruiter'].includes(currentTab);
   const effectiveTab = !user && isProtected ? 'login' : currentTab;
 
+  // HireByte page renders standalone with its own navbar
+  if (effectiveTab === 'hirebyte') {
+    return <HireBytePage onNavigate={handleNavigate} />;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col font-sans selection:bg-brand-500 selection:text-white">
-      <Navbar currentTab={effectiveTab} onNavigate={handleNavigate} />
+    <div
+      className={`min-h-screen flex flex-col ${effectiveTab === 'live-interview' ? 'bg-slate-950' : ''}`}
+      style={{
+        background: effectiveTab === 'live-interview' ? '#020617' : '#f0eff5',
+        fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif"
+      }}
+    >
+      {effectiveTab !== 'live-interview' && <Navbar currentTab={effectiveTab} onNavigate={handleNavigate} />}
 
       <main className="flex-1">
         {effectiveTab === 'landing' && <LandingPage onNavigate={handleNavigate} />}
@@ -87,6 +98,7 @@ export const App: React.FC = () => {
           <SetupInterviewPage
             onNavigate={handleNavigate}
             initialResumeId={navParams.resumeId}
+            initialResume={navParams.resume}
           />
         )}
         {effectiveTab === 'live-interview' && (
@@ -112,7 +124,7 @@ export const App: React.FC = () => {
         {effectiveTab === 'recruiter' && <RecruiterPortalPage onNavigate={handleNavigate} />}
       </main>
 
-      <Footer />
+      {effectiveTab !== 'live-interview' && <Footer />}
     </div>
   );
 };

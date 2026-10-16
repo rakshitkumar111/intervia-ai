@@ -72,9 +72,27 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
   const [replayData, setReplayData] = useState<CandidateSessionReplayResponse | null>(null);
   const [isLoadingReplay, setIsLoadingReplay] = useState<boolean>(false);
 
+  // Live Auto-Cloudflare Tunnel URL State
+  const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
+
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    const checkTunnel = () => {
+      recruiterApi.getTunnelStatus()
+        .then((res) => {
+          if (res.public_url && res.public_url.includes('trycloudflare.com')) {
+            setTunnelUrl(res.public_url);
+          }
+        })
+        .catch(() => {});
+    };
+    checkTunnel();
+    const interval = setInterval(checkTunnel, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -93,13 +111,25 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
     }
   };
 
-  const getShareableUrl = (inv: { candidate_url?: string; invite_token?: string }) => {
-    if (!inv.invite_token) return '';
-    // If accessing via localhost, use localhost URL so local testing and demo always work reliably
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `${window.location.origin}/interview/${inv.invite_token}`;
+  const getCandidateUrl = (token: string, backendCandidateUrl?: string) => {
+    // 1. Prioritize live active Cloudflare tunnel URL so mobile candidates can connect anywhere
+    if (backendCandidateUrl && backendCandidateUrl.includes('trycloudflare.com')) {
+      return backendCandidateUrl;
     }
-    return inv.candidate_url || `${window.location.origin}/interview/${inv.invite_token}`;
+    if (tunnelUrl) {
+      return `${tunnelUrl.replace(/\/+$/, '')}/interview/${token}`;
+    }
+    // 2. Prioritize any custom domain or external host
+    if (backendCandidateUrl && !backendCandidateUrl.includes('localhost') && !backendCandidateUrl.includes('127.0.0.1')) {
+      return backendCandidateUrl;
+    }
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return `${window.location.origin}/interview/${token}`;
+    }
+    if (backendCandidateUrl) {
+      return backendCandidateUrl;
+    }
+    return `${window.location.origin}/interview/${token}`;
   };
 
   const handleCreateInvite = async (e: React.FormEvent) => {
@@ -110,7 +140,7 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
     setEmailFeedback(null);
     try {
       const res = await recruiterApi.createInvite(form);
-      const fullUrl = getShareableUrl(res);
+      const fullUrl = getCandidateUrl(res.invite_token, res.candidate_url);
       setGeneratedLink(fullUrl);
       setLatestCreatedInvite(res);
 
@@ -173,7 +203,7 @@ export const RecruiterPortalPage: React.FC<RecruiterPortalPageProps> = ({ onNavi
   };
 
   const openWhatsApp = async (inv: InterviewInviteResponse) => {
-    const fullUrl = getShareableUrl(inv);
+    const fullUrl = getCandidateUrl(inv.invite_token, inv.candidate_url);
     const expiry = new Date(inv.expires_at).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
@@ -332,18 +362,24 @@ Good luck!`;
             {/* Filter and Search */}
             <div className="flex items-center justify-between gap-4">
               <div className="relative flex-1 max-w-md">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9b9bae' }} />
                 <input
                   type="text"
                   placeholder="Filter by name, role, or verdict..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  className="w-full rounded-xl pl-9 pr-4 py-2.5 text-xs transition-all focus:outline-none"
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e5e3ee',
+                    color: '#1a1a2e',
+                  }}
                 />
               </div>
               <button
                 onClick={() => setActiveTab('invites')}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-purple-600/25 transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 text-white text-xs font-semibold rounded-xl shadow-md transition-all hover:opacity-95"
+                style={{ background: 'linear-gradient(to right, #6c5ce7, #818cf8)' }}
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Invite New Candidate</span>
@@ -351,32 +387,32 @@ Good luck!`;
             </div>
 
             {/* Table */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="rounded-2xl overflow-hidden shadow-sm border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+                <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
+                  <thead className="uppercase tracking-wider text-[10px]" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
                     <tr>
-                      <th className="py-3 px-4">Rank</th>
-                      <th className="py-3 px-4">Candidate & Role</th>
-                      <th className="py-3 px-4">Domain / Exp</th>
-                      <th className="py-3 px-4 text-center">Overall Score</th>
-                      <th className="py-3 px-4 text-center">Tech / Comm</th>
-                      <th className="py-3 px-4 text-center">Integrity Trust</th>
-                      <th className="py-3 px-4 text-center">Verdict</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                      <th className="py-3.5 px-4 font-bold">Rank</th>
+                      <th className="py-3.5 px-4 font-bold">Candidate & Role</th>
+                      <th className="py-3.5 px-4 font-bold">Domain / Exp</th>
+                      <th className="py-3.5 px-4 text-center font-bold">Overall Score</th>
+                      <th className="py-3.5 px-4 text-center font-bold">Tech / Comm</th>
+                      <th className="py-3.5 px-4 text-center font-bold">Integrity Trust</th>
+                      <th className="py-3.5 px-4 text-center font-bold">Verdict</th>
+                      <th className="py-3.5 px-4 text-right font-bold">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y" style={{ borderColor: '#f0eff5' }}>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-slate-500">
+                        <td colSpan={8} className="py-12 text-center" style={{ color: '#6b6b80' }}>
                           <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                           Loading candidate performance data...
                         </td>
                       </tr>
                     ) : filteredLeaderboard.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-slate-500">
+                        <td colSpan={8} className="py-12 text-center" style={{ color: '#6b6b80' }}>
                           No candidates found matching criteria.
                         </td>
                       </tr>
@@ -384,48 +420,48 @@ Good luck!`;
                       filteredLeaderboard.map((cand, index) => {
                         const isTop = index === 0;
                         const verdictColor = cand.verdict.toLowerCase().includes('strong')
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
                           : cand.verdict.toLowerCase().includes('hire')
-                          ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                          : 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+                          ? 'bg-blue-50 text-blue-600 border-blue-200'
+                          : 'bg-amber-50 text-amber-600 border-amber-200';
 
                         return (
-                          <tr key={cand.interview_id} className="hover:bg-slate-800/30 transition-colors">
-                            <td className="py-3.5 px-4 font-bold text-slate-300">
+                          <tr key={cand.interview_id} className="hover:bg-purple-50/40 transition-colors" style={{ borderBottom: '1px solid #f0eff5' }}>
+                            <td className="py-3.5 px-4 font-bold" style={{ color: '#4a4a60' }}>
                               <span
                                 className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-mono ${
                                   isTop
-                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                                    : 'bg-slate-800 text-slate-400'
+                                    ? 'bg-amber-100 text-amber-700 border border-amber-300 font-bold'
+                                    : 'bg-gray-100 text-gray-600'
                                 }`}
                               >
                                 #{index + 1}
                               </span>
                             </td>
                             <td className="py-3.5 px-4">
-                              <div className="font-semibold text-white">{cand.candidate_name}</div>
-                              <div className="text-[11px] text-purple-400">{cand.target_role}</div>
+                              <div className="font-semibold" style={{ color: '#1a1a2e' }}>{cand.candidate_name}</div>
+                              <div className="text-[11px]" style={{ color: '#6c5ce7' }}>{cand.target_role}</div>
                             </td>
-                            <td className="py-3.5 px-4 text-slate-400">
+                            <td className="py-3.5 px-4" style={{ color: '#6b6b80' }}>
                               <div>{cand.domain}</div>
-                              <span className="text-[10px] text-slate-500">{cand.experience_level}</span>
+                              <span className="text-[10px]" style={{ color: '#9b9bae' }}>{cand.experience_level}</span>
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700 font-mono font-bold text-white">
+                              <span className="inline-block px-2.5 py-1 rounded-lg font-mono font-bold" style={{ background: '#f7f6fb', border: '1px solid #e5e3ee', color: '#1a1a2e' }}>
                                 {cand.overall_score}%
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-center font-mono text-slate-300">
+                            <td className="py-3.5 px-4 text-center font-mono" style={{ color: '#4a4a60' }}>
                               {cand.technical_score} / {cand.communication_score}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              <span className="inline-flex items-center gap-1 text-emerald-400 font-mono">
+                              <span className="inline-flex items-center gap-1 font-mono text-emerald-600">
                                 <ShieldCheck className="w-3.5 h-3.5" />
                                 {cand.integrity_score}%
                               </span>
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${verdictColor}`}>
+                              <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-semibold ${verdictColor}`}>
                                 {cand.verdict}
                               </span>
                             </td>
@@ -433,15 +469,17 @@ Good luck!`;
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => openReplayModal(cand.interview_id)}
-                                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors"
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors hover:bg-purple-50"
+                                  style={{ background: '#ffffff', color: '#6c5ce7', border: '1px solid #e5e3ee' }}
                                 >
-                                  <Play className="w-3 h-3 text-purple-400" />
+                                  <Play className="w-3 h-3 text-purple-600" />
                                   <span>Audit Replay</span>
                                 </button>
                                 {onNavigate && (
                                   <button
                                     onClick={() => onNavigate('report', { interviewId: cand.interview_id })}
-                                    className="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors"
+                                    className="p-1.5 rounded-lg transition-colors hover:bg-gray-100"
+                                    style={{ color: '#6b6b80' }}
                                     title="Open Full Evaluation Report"
                                   >
                                     <FileText className="w-3.5 h-3.5" />
@@ -474,6 +512,33 @@ Good luck!`;
                   Candidate receives a zero-login tokenized interview link with automated expiry.
                 </p>
               </div>
+
+              {/* Live Auto-Generated Cloudflare Tunnel Status Badge */}
+              {tunnelUrl ? (
+                <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 shadow-lg">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-bold text-emerald-300">Auto Cloudflare Tunnel Active</div>
+                      <div className="text-[10px] text-emerald-400 font-mono truncate">{tunnelUrl}</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(tunnelUrl)}
+                    className="px-2 py-1 bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 text-[10px] font-semibold rounded-lg shrink-0 flex items-center gap-1 transition-colors"
+                    title="Copy Root Cloudflare Link"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>Copy</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex items-center gap-2 text-xs text-slate-400">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                  <span className="text-[11px]">Initializing automatic Cloudflare tunnel from localhost...</span>
+                </div>
+              )}
 
               <form onSubmit={handleCreateInvite} className="space-y-4">
                 <div>
@@ -702,27 +767,27 @@ Good luck!`;
             </div>
 
             {/* Invites List */}
-            <div className="lg:col-span-2 bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl p-6 space-y-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-purple-400" />
+            <div className="lg:col-span-2 border rounded-2xl overflow-hidden shadow-sm p-6 space-y-4" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
+              <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#1a1a2e' }}>
+                <Clock className="w-4 h-4 text-purple-600" />
                 Active & Past Interview Invites
               </h3>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-900/90 border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[10px]">
+                <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
+                  <thead className="uppercase tracking-wider text-[10px]" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
                     <tr>
-                      <th className="py-2.5 px-3">Candidate</th>
-                      <th className="py-2.5 px-3">Target Role & Score</th>
-                      <th className="py-2.5 px-3">Status & Delivery</th>
-                      <th className="py-2.5 px-3">Dates</th>
-                      <th className="py-2.5 px-3 text-right">Actions</th>
+                      <th className="py-2.5 px-3 font-bold">Candidate</th>
+                      <th className="py-2.5 px-3 font-bold">Target Role & Score</th>
+                      <th className="py-2.5 px-3 font-bold">Status & Delivery</th>
+                      <th className="py-2.5 px-3 font-bold">Dates</th>
+                      <th className="py-2.5 px-3 text-right font-bold">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y" style={{ borderColor: '#f0eff5' }}>
                     {invites.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-slate-500">
+                        <td colSpan={5} className="py-8 text-center" style={{ color: '#6b6b80' }}>
                           No interview invites created yet. Use form on left to create one.
                         </td>
                       </tr>
@@ -735,7 +800,7 @@ Good luck!`;
                           expired: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
                         };
 
-                        const link = getShareableUrl(inv);
+                        const link = getCandidateUrl(inv.invite_token, inv.candidate_url);
 
                         return (
                           <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors">

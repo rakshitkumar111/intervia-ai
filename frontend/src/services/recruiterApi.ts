@@ -136,4 +136,7 @@ export const recruiterApi = {
       `/recruiter/invites/${inviteId}/mark-whatsapp`,
       { method: 'POST' }
     ),
+
+  getTunnelStatus: () =>
+    request<{ is_active: boolean; public_url?: string; is_installed: boolean }>('/recruiter/tunnel-status'),
 };

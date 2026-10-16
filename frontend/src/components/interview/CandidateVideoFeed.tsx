@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { User, VideoOff, ShieldCheck, AlertTriangle, Eye, EyeOff, Users, Activity, Volume2, ShieldAlert } from 'lucide-react';
+import {
+  User, VideoOff, ShieldCheck, AlertTriangle, Eye, EyeOff, Users,
+  Activity, Volume2, ShieldAlert, Minimize2, Maximize2, Layout,
+  ArrowUpRight, ArrowDownRight
+} from 'lucide-react';
 
 export type GazeStatus = 'CENTER' | 'LOOKING_LEFT' | 'LOOKING_RIGHT' | 'LOOKING_DOWN' | 'FACE_ABSENT' | 'MULTIPLE_FACES';
 
@@ -9,6 +13,11 @@ interface CandidateVideoFeedProps {
   targetRole: string;
   interviewId?: number;
   onProctoringAlert?: (eventType: string, details: Record<string, any>) => void;
+  className?: string;
+  isCorner?: boolean;
+  cornerPosition?: 'bottom-right' | 'top-right';
+  onChangeCornerPosition?: (pos: 'bottom-right' | 'top-right') => void;
+  onToggleCorner?: () => void;
 }
 
 export const CandidateVideoFeed: React.FC<CandidateVideoFeedProps> = ({
@@ -17,7 +26,13 @@ export const CandidateVideoFeed: React.FC<CandidateVideoFeedProps> = ({
   targetRole,
   interviewId,
   onProctoringAlert,
+  className = '',
+  isCorner = false,
+  cornerPosition = 'bottom-right',
+  onChangeCornerPosition,
+  onToggleCorner,
 }) => {
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -247,8 +262,75 @@ export const CandidateVideoFeed: React.FC<CandidateVideoFeedProps> = ({
     };
   }, [isCamActive, triggerProctoringEvent]);
 
+  if (isCorner && isMinimized) {
+    return (
+      <div
+        onClick={() => setIsMinimized(false)}
+        className={`fixed z-40 ${
+          cornerPosition === 'top-right' ? 'top-20 right-6' : 'bottom-20 right-6'
+        } bg-slate-900/95 border border-purple-500/40 rounded-2xl px-4 py-2.5 shadow-2xl backdrop-blur-xl flex items-center gap-3 transition-all cursor-pointer hover:border-purple-400 select-none ${className}`}
+      >
+        <div className="relative flex items-center justify-center">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+        </div>
+        <div className="text-left text-xs">
+          <p className="font-bold text-white text-[11px] leading-tight flex items-center gap-1.5">
+            <span>Your Camera</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-semibold">Corner</span>
+          </p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Trust: {trustScore}%</p>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsMinimized(false);
+          }}
+          className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+          title="Expand Camera"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  const containerClasses = isCorner
+    ? `fixed z-40 ${
+        cornerPosition === 'top-right' ? 'top-20 right-6' : 'bottom-20 right-6'
+      } w-64 sm:w-72 md:w-80 h-48 sm:h-52 rounded-2xl border-2 border-purple-500/40 bg-slate-900/95 backdrop-blur-xl shadow-2xl ring-1 ring-purple-500/20 overflow-hidden transition-all duration-300 flex items-center justify-center ${className}`
+    : `relative w-full h-48 bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-lg flex items-center justify-center ${className}`;
+
   return (
-    <div className="relative w-full h-48 bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-lg flex items-center justify-center">
+    <div className={containerClasses}>
+      {/* Corner Controls Toolbar */}
+      {isCorner && (
+        <div className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-xl border border-slate-800 shadow-md">
+          <button
+            onClick={() => onChangeCornerPosition?.(cornerPosition === 'bottom-right' ? 'top-right' : 'bottom-right')}
+            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+            title={cornerPosition === 'bottom-right' ? 'Move to Top-Right Corner' : 'Move to Bottom-Right Corner'}
+          >
+            {cornerPosition === 'bottom-right' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          </button>
+          <button
+            onClick={() => setIsMinimized(true)}
+            className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+            title="Minimize to Corner Badge"
+          >
+            <Minimize2 className="w-3 h-3" />
+          </button>
+          {onToggleCorner && (
+            <button
+              onClick={onToggleCorner}
+              className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition-colors"
+              title="Dock into Page Grid"
+            >
+              <Layout className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      )}
+
       {isCamActive ? (
         <>
           <video
@@ -281,7 +363,7 @@ export const CandidateVideoFeed: React.FC<CandidateVideoFeedProps> = ({
       )}
 
       {/* Top Status Tags: Live Status + AI Proctoring Trust Score */}
-      <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+      <div className={`absolute top-2.5 left-2.5 ${isCorner ? 'right-28' : 'right-2.5'} flex items-center justify-between pointer-events-none`}>
         {/* Live Proctoring Status Pill */}
         <div
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide backdrop-blur-md border shadow-md transition-all ${
@@ -336,23 +418,17 @@ export const CandidateVideoFeed: React.FC<CandidateVideoFeedProps> = ({
       )}
 
       {/* Bottom Candidate Bar */}
-      <div className="absolute bottom-2.5 inset-x-2.5 bg-slate-950/85 backdrop-blur-md border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-bold text-slate-100">{candidateName}</p>
-          <p className="text-[10px] text-slate-400">{targetRole}</p>
+      <div className="absolute bottom-2.5 inset-x-2.5 bg-slate-950/85 backdrop-blur-md border border-slate-800/80 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 overflow-hidden">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-slate-100 truncate">{candidateName}</p>
+          <p className="text-[10px] text-slate-400 truncate" title={targetRole}>{targetRole}</p>
         </div>
-        <div className="flex items-center gap-2">
-          {audioAnomaly && (
-            <div className="flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800">
-              <Volume2 className="w-2.5 h-2.5" />
-              <span>Noise</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1 text-[10px] text-emerald-400">
-            <ShieldCheck className="w-3 h-3" />
-            <span>Proctored</span>
+        {audioAnomaly && (
+          <div className="flex items-center gap-0.5 text-[9px] text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800 flex-shrink-0">
+            <Volume2 className="w-2.5 h-2.5" />
+            <span>Noise</span>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

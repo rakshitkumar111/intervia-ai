@@ -57,19 +57,33 @@ export const CandidateDashboard: React.FC<CandidateDashboardProps> = ({ onNaviga
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-brand-950/40 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+      <div
+        className="rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #faf9fd 60%, #f4f0ff 100%)',
+          border: '1px solid #e5e3ee',
+          boxShadow: '0 4px 20px rgba(108, 92, 231, 0.06)',
+        }}
+      >
         <div className="space-y-2 z-10">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-semibold flex items-center gap-1">
+            <span
+              className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5"
+              style={{
+                background: 'rgba(108, 92, 231, 0.08)',
+                color: '#6c5ce7',
+                border: '1px solid rgba(108, 92, 231, 0.2)',
+              }}
+            >
               <Sparkles className="w-3.5 h-3.5" />
               Candidate Assessment Portal
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100">
+          <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: '#1a1a2e' }}>
             Welcome back, {user?.full_name || 'Candidate'}!
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-xl">
-            Targeting: <span className="text-slate-200 font-semibold">{user?.profile?.target_role || 'Software Engineer'}</span> ({user?.profile?.experience_level || 'Fresher'}). Test your readiness with your humanoid virtual interviewer.
+          <p className="text-xs sm:text-sm max-w-xl" style={{ color: '#6b6b80' }}>
+            Targeting: <span className="font-semibold" style={{ color: '#1a1a2e' }}>{user?.profile?.target_role || 'Software Engineer'}</span> ({user?.profile?.experience_level || 'Fresher'}). Test your readiness with your humanoid virtual interviewer.
           </p>
         </div>
 
@@ -77,15 +91,25 @@ export const CandidateDashboard: React.FC<CandidateDashboardProps> = ({ onNaviga
         <div className="flex flex-wrap items-center gap-3 z-10 w-full md:w-auto">
           <button
             onClick={() => onNavigate('resume')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-all"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-semibold transition-all hover:bg-gray-50"
+            style={{
+              background: '#ffffff',
+              color: '#2d2d44',
+              border: '1px solid #e5e3ee',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            }}
           >
-            <FileUp className="w-4 h-4 text-brand-400" />
+            <FileUp className="w-4 h-4" style={{ color: '#6c5ce7' }} />
             <span>Upload Resume</span>
           </button>
 
           <button
             onClick={() => onNavigate('setup-interview')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-600 to-blue-600 hover:from-brand-500 hover:to-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-600/30 transition-all transform hover:-translate-y-0.5"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-bold text-white transition-all transform hover:-translate-y-0.5"
+            style={{
+              background: 'linear-gradient(to right, #6c5ce7, #818cf8)',
+              boxShadow: '0 4px 14px rgba(108, 92, 231, 0.35)',
+            }}
           >
             <PlayCircle className="w-4 h-4" />
             <span>Launch Mock Interview</span>

@@ -16,6 +16,8 @@ export class SpeechEngine {
   private finalTranscript: string = '';
   private interimTranscript: string = '';
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private audioPlayer: HTMLAudioElement | null = null;
+  private boundaryInterval: number | null = null;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private mediaStream: MediaStream | null = null;
@@ -180,7 +182,7 @@ export class SpeechEngine {
   }
 
   /**
-   * Strictly Selects a Female Voice for the Local Fallback Avatar
+   * Selects a Natural Female Voice, filtering out robotic legacy desktop voices
    */
   public getAvailableFemaleVoice(): SpeechSynthesisVoice | null {
     if (!this.isTTSSupported()) return null;
@@ -188,29 +190,33 @@ export class SpeechEngine {
     const voices = (this.cachedVoices.length > 0 ? this.cachedVoices : window.speechSynthesis.getVoices()) || [];
     if (!voices || voices.length === 0) return null;
 
-    // Filter out known male voice signatures
-    const maleNames = [
+    // Filter out known male voice signatures & robotic legacy voices
+    const unwantedNames = [
       'daniel', 'david', 'george', 'mark', 'james', 'richard', 'alex', 'fred',
-      'oliver', 'rishi', 'hemant', 'male', 'guy', 'stefan', 'tom', 'diego', 'jorge'
+      'oliver', 'rishi', 'hemant', 'male', 'guy', 'stefan', 'tom', 'diego', 'jorge',
+      'desktop', 'zira desktop'
     ];
 
-    // Priority 1: Language-specific Female Voice (Hindi/Indian)
-    if (this.currentLanguage === 'Hindi') {
-      const hindiFemale = voices.find(v => 
-        (v.lang.includes('hi') || v.name.toLowerCase().includes('hindi')) &&
-        !maleNames.some(m => v.name.toLowerCase().includes(m))
-      );
-      if (hindiFemale) return hindiFemale;
-    }
+    // Priority 1: High-Definition Neural / Natural voices (Edge & Chrome natural neural voices)
+    const naturalNeuralVoice = voices.find(v => {
+      const vName = v.name.toLowerCase();
+      const isNatural = vName.includes('natural') || vName.includes('neural') || vName.includes('online (natural)');
+      const isUnwanted = unwantedNames.some(u => vName.includes(u));
+      return isNatural && !isUnwanted && (v.lang.startsWith('en') || v.lang.startsWith('hi'));
+    });
+    if (naturalNeuralVoice) return naturalNeuralVoice;
 
-    // Priority 2: Explicit high-quality female natural voices
+    // Priority 2: Explicit high-quality female natural voices (excluding legacy desktop)
     const preferredFemaleNames = [
-      'jenny', 'aria', 'zira', 'samantha', 'victoria', 'karen', 'fiona',
-      'moira', 'tessa', 'veena', 'sangeeta', 'swara', 'kalpana', 'google us english female', 'microsoft zira', 'microsoft jenny'
+      'jenny', 'aria', 'ava', 'sonia', 'samantha', 'victoria', 'karen', 'fiona',
+      'moira', 'tessa', 'neerja', 'veena', 'sangeeta', 'swara', 'kalpana', 'google us english female', 'google us english'
     ];
 
     for (const name of preferredFemaleNames) {
-      const found = voices.find(v => v.name.toLowerCase().includes(name));
+      const found = voices.find(v => {
+        const vName = v.name.toLowerCase();
+        return vName.includes(name) && !vName.includes('desktop');
+      });
       if (found) return found;
     }
 
@@ -218,31 +224,141 @@ export class SpeechEngine {
     const femaleCandidate = voices.find(v => {
       const vName = v.name.toLowerCase();
       const isMatchingLang = v.lang.startsWith('en') || v.lang.startsWith('hi');
-      const isMale = maleNames.some(m => vName.includes(m));
-      return isMatchingLang && !isMale;
+      const isUnwanted = unwantedNames.some(m => vName.includes(m));
+      return isMatchingLang && !isUnwanted;
     });
 
     if (femaleCandidate) return femaleCandidate;
 
     // Fallback: Pick any non-male voice
-    const nonMale = voices.find(v => !maleNames.some(m => v.name.toLowerCase().includes(m)));
+    const nonMale = voices.find(v => !unwantedNames.some(m => v.name.toLowerCase().includes(m)));
     return nonMale || voices[0];
   }
 
   public getSelectedFemaleVoiceName(): string {
     const voice = this.getAvailableFemaleVoice();
-    return voice ? voice.name : 'System Female Default';
+    return voice ? voice.name : 'Studio Neural Female Voice';
+  }
+
+  public unlockAudio(): void {
+    try {
+      const silentAudio = new Audio();
+      silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      silentAudio.play().catch(() => {});
+    } catch (e) {
+      console.warn('[SPEECH] unlockAudio warning:', e);
+    }
   }
 
   /**
-   * Speaks text using strictly female browser TTS
+   * Speaks text using Lifelike Neural Voice (with Web Speech fallback)
    */
-  public speak(
+  public async speak(
     text: string,
     options: {
       onStart?: () => void;
       onEnd?: () => void;
-      onBoundary?: (event: SpeechSynthesisEvent) => void;
+      onBoundary?: (event?: any) => void;
+      onError?: (error: any) => void;
+      voice?: string;
+      rate?: number;
+      pitch?: number;
+    } = {}
+  ): Promise<void> {
+    this.stopSpeaking();
+
+    // 1. Primary: Server-side Studio Neural Voice (Authentic Indian Voice or Kokoro-82M)
+    try {
+      const targetVoice = options.voice || (
+        this.currentLanguage === 'Hindi'
+          ? 'hi-IN-SwaraNeural'
+          : 'en-IN-NeerjaNeural' // Authentic Indian English Voice by default
+      );
+
+      const response = await fetch('/api/speech/synthesize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          voice: targetVoice,
+          language: this.currentLanguage
+        })
+      });
+
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const player = new Audio(audioUrl);
+        this.audioPlayer = player;
+
+        player.onplay = () => {
+          console.log(`[SPEECH] Lifelike Studio Neural Voice active (${targetVoice})`);
+          options.onStart?.();
+
+          // Smooth phonetic viseme lipsync simulation
+          if (this.boundaryInterval) clearInterval(this.boundaryInterval);
+          this.boundaryInterval = window.setInterval(() => {
+            options.onBoundary?.();
+          }, 160);
+        };
+
+        player.onended = () => {
+          if (this.boundaryInterval) {
+            clearInterval(this.boundaryInterval);
+            this.boundaryInterval = null;
+          }
+          URL.revokeObjectURL(audioUrl);
+          this.audioPlayer = null;
+          console.log('[SPEECH] Studio Neural Voice playback completed.');
+          options.onEnd?.();
+        };
+
+        player.onerror = (err) => {
+          console.warn('[SPEECH] Neural audio playback error:', err);
+          if (this.boundaryInterval) {
+            clearInterval(this.boundaryInterval);
+            this.boundaryInterval = null;
+          }
+          URL.revokeObjectURL(audioUrl);
+          this.audioPlayer = null;
+          options.onEnd?.();
+        };
+
+        try {
+          await player.play();
+          return;
+        } catch (playErr: any) {
+          if (playErr?.name === 'NotAllowedError') {
+            console.warn('[SPEECH] Autoplay blocked by browser policy. Will play on first candidate click/gesture.');
+            const playOnInteraction = () => {
+              player.play().catch(console.warn);
+              window.removeEventListener('click', playOnInteraction);
+              window.removeEventListener('keydown', playOnInteraction);
+            };
+            window.addEventListener('click', playOnInteraction, { once: true });
+            window.addEventListener('keydown', playOnInteraction, { once: true });
+            return;
+          }
+          throw playErr;
+        }
+      }
+    } catch (networkErr) {
+      console.warn('[SPEECH] Neural synthesis endpoint unavailable, trying natural Web Speech:', networkErr);
+    }
+
+    // 2. Secondary: Browser Web Speech API (only if server completely unreachable)
+    this.speakWebSpeech(text, options);
+  }
+
+  /**
+   * Browser Web Speech API fallback
+   */
+  public speakWebSpeech(
+    text: string,
+    options: {
+      onStart?: () => void;
+      onEnd?: () => void;
+      onBoundary?: (event?: any) => void;
       onError?: (error: any) => void;
       rate?: number;
       pitch?: number;
@@ -260,14 +376,12 @@ export class SpeechEngine {
 
     if (femaleVoice) {
       utterance.voice = femaleVoice;
-      console.log(`[SPEECH] provider = LOCAL_TTS, voice = ${femaleVoice.name} (${femaleVoice.lang})`);
-    } else {
-      console.log('[SPEECH] provider = LOCAL_TTS, voice = FEMALE (pitched)');
+      console.log(`[SPEECH] Web Speech provider active: ${femaleVoice.name} (${femaleVoice.lang})`);
     }
 
-    // Feminine pitch (1.08) and natural conversational pacing (0.96)
-    utterance.rate = options.rate || 0.96;
-    utterance.pitch = options.pitch || 1.08;
+    // Natural human conversational pacing and natural pitch
+    utterance.rate = options.rate || 0.98;
+    utterance.pitch = options.pitch || 1.0;
 
     utterance.onstart = () => {
       console.log('[LOCAL FEMALE TTS] speaking started');
@@ -296,6 +410,17 @@ export class SpeechEngine {
   }
 
   public stopSpeaking(): void {
+    if (this.boundaryInterval) {
+      clearInterval(this.boundaryInterval);
+      this.boundaryInterval = null;
+    }
+    if (this.audioPlayer) {
+      try {
+        this.audioPlayer.pause();
+        this.audioPlayer.currentTime = 0;
+      } catch (e) {}
+      this.audioPlayer = null;
+    }
     if (this.isTTSSupported()) {
       window.speechSynthesis.cancel();
       this.currentUtterance = null;

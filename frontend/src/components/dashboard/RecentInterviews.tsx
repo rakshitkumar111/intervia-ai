@@ -14,9 +14,9 @@ export const RecentInterviews: React.FC<RecentInterviewsProps> = ({
 }) => {
   if (!interviews || interviews.length === 0) {
     return (
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 text-center">
-        <p className="text-slate-400 text-sm mb-2">No interviews conducted yet.</p>
-        <p className="text-xs text-slate-500">Upload your resume and start your first AI mock interview session!</p>
+      <div className="rounded-2xl p-8 text-center border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
+        <p className="text-sm mb-1 font-semibold" style={{ color: '#6b6b80' }}>No interviews conducted yet.</p>
+        <p className="text-xs" style={{ color: '#9b9bae' }}>Upload your resume and start your first AI mock interview session!</p>
       </div>
     );
   }
@@ -24,37 +24,37 @@ export const RecentInterviews: React.FC<RecentInterviewsProps> = ({
   const getVerdictBadge = (verdict: string) => {
     switch (verdict) {
       case 'Strong Hire':
-        return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Hire':
-        return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
+        return 'bg-teal-50 text-teal-700 border-teal-200';
       case 'Leaning Hire':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Needs Improvement':
       case 'Reject':
       default:
-        return 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+        return 'bg-rose-50 text-rose-700 border-rose-200';
     }
   };
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-lg">
+    <div className="rounded-2xl p-6 shadow-sm border" style={{ background: '#ffffff', borderColor: '#e5e3ee' }}>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-100">Recent Interview Sessions</h3>
-          <p className="text-xs text-slate-400">Track and review previous performance reports</p>
+          <h3 className="text-base font-bold" style={{ color: '#1a1a2e' }}>Recent Interview Sessions</h3>
+          <p className="text-xs" style={{ color: '#6b6b80' }}>Track and review previous performance reports</p>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-xs" style={{ background: '#ffffff' }}>
           <thead>
-            <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-              <th className="pb-3">Session Title & Role</th>
-              <th className="pb-3">Mode / Difficulty</th>
-              <th className="pb-3">Score</th>
-              <th className="pb-3">AI Verdict</th>
-              <th className="pb-3">Date</th>
-              <th className="pb-3 text-right">Actions</th>
+            <tr className="uppercase text-[10px] tracking-wider font-bold" style={{ background: '#f7f6fb', borderBottom: '1px solid #e5e3ee', color: '#6b6b80' }}>
+              <th className="py-3 px-3">Session Title & Role</th>
+              <th className="py-3 px-3">Mode / Difficulty</th>
+              <th className="py-3 px-3">Score</th>
+              <th className="py-3 px-3">AI Verdict</th>
+              <th className="py-3 px-3">Date</th>
+              <th className="py-3 px-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
@@ -100,7 +100,17 @@ export const RecentInterviews: React.FC<RecentInterviewsProps> = ({
                       </button>
                     ) : (
                       <button
-                        onClick={() => onSelectInterview(item.id)}
+                        onClick={() => {
+                          try {
+                            const docEl = document.documentElement as any;
+                            if (docEl.requestFullscreen) {
+                              docEl.requestFullscreen().catch(() => {});
+                            } else if (docEl.webkitRequestFullscreen) {
+                              docEl.webkitRequestFullscreen();
+                            }
+                          } catch {}
+                          onSelectInterview(item.id);
+                        }}
                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition-colors"
                       >
                         <Play className="w-3 h-3 fill-current" />

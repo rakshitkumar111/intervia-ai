@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, LogOut, LayoutDashboard, FileUp, PlayCircle, Shield, UserCircle, Bot, Users } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, FileUp, PlayCircle, Shield, UserCircle, Bot, Users, Diamond, ChevronDown, Search, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface NavbarProps {
@@ -11,35 +11,39 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onNavigate }) => {
   const { user, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full border-b" style={{
+      background: 'rgba(255,255,255,0.95)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      borderColor: '#e5e3ee'
+    }}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-6">
         {/* Brand Logo */}
         <div
           onClick={() => onNavigate(user ? 'dashboard' : 'landing')}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group flex-shrink-0"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
-            <Bot className="w-6 h-6 text-white" />
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{
+            background: 'linear-gradient(135deg, #eeeafd, #d8d3f5)'
+          }}>
+            <Diamond className="w-5 h-5" style={{ color: '#6c5ce7' }} />
           </div>
-          <div>
-            <span className="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
-              UNIVERSAL<span className="text-purple-400">AI</span>
-              <span className="px-1.5 py-0.5 text-[9px] bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-md font-mono">INTERVIEWER</span>
-            </span>
-            <span className="text-[10px] text-slate-400 block -mt-1">Production-Grade Universal AI Interviewer</span>
-          </div>
+          <span className="text-lg font-extrabold tracking-wide" style={{ color: '#1a1a2e', letterSpacing: '0.5px' }}>
+            HIREBYTE
+          </span>
         </div>
 
         {/* Navigation Links */}
         {user ? (
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-0.5 rounded-full px-1 py-1" style={{ background: '#f7f6fb' }}>
             <button
               onClick={() => onNavigate('dashboard')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 currentTab === 'dashboard'
-                  ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-white shadow-sm'
+                  : 'hover:bg-white/50'
               }`}
+              style={{ color: currentTab === 'dashboard' ? '#1a1a2e' : '#6b6b80' }}
             >
               <LayoutDashboard className="w-4 h-4" />
               <span>Dashboard</span>
@@ -47,95 +51,134 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onNavigate }) => {
 
             <button
               onClick={() => onNavigate('resume')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 currentTab === 'resume'
-                  ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-white shadow-sm'
+                  : 'hover:bg-white/50'
               }`}
+              style={{ color: currentTab === 'resume' ? '#1a1a2e' : '#6b6b80' }}
             >
               <FileUp className="w-4 h-4" />
-              <span>Resume Analysis</span>
+              <span>Resume</span>
             </button>
 
             <button
               onClick={() => onNavigate('setup-interview')}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
                 currentTab === 'setup-interview' || currentTab === 'live-interview'
-                  ? 'bg-gradient-to-r from-brand-600 to-blue-600 text-white shadow-md shadow-brand-500/25'
-                  : 'bg-brand-500/10 text-brand-400 border border-brand-500/30 hover:bg-brand-500/20'
+                  ? 'text-white shadow-md'
+                  : 'hover:bg-white/50'
               }`}
+              style={
+                currentTab === 'setup-interview' || currentTab === 'live-interview'
+                  ? { background: 'linear-gradient(to right, #6c5ce7, #818cf8)', color: '#fff' }
+                  : { color: '#6b6b80' }
+              }
             >
               <PlayCircle className="w-4 h-4" />
-              <span>Start Interview</span>
+              <span>Interview</span>
             </button>
 
             <button
               onClick={() => onNavigate('recruiter')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 currentTab === 'recruiter'
-                  ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-white shadow-sm'
+                  : 'hover:bg-white/50'
               }`}
+              style={{ color: currentTab === 'recruiter' ? '#6c5ce7' : '#6b6b80' }}
             >
-              <Users className="w-4 h-4 text-purple-400" />
-              <span>Recruiter Portal</span>
+              <Users className="w-4 h-4" />
+              <span>Recruiter</span>
             </button>
 
             {user.role === 'admin' && (
               <button
                 onClick={() => onNavigate('admin')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   currentTab === 'admin'
-                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-sm'
-                    : 'text-purple-400 hover:text-purple-300 hover:bg-purple-950/30'
+                    ? 'bg-white shadow-sm'
+                    : 'hover:bg-white/50'
                 }`}
+                style={{ color: currentTab === 'admin' ? '#6c5ce7' : '#6b6b80' }}
               >
                 <Shield className="w-4 h-4" />
-                <span>Admin Panel</span>
+                <span>Admin</span>
               </button>
             )}
           </nav>
         ) : (
-          <div className="flex items-center gap-3">
+          <nav className="hidden md:flex items-center gap-0.5 rounded-full px-1 py-1" style={{ background: '#f7f6fb' }}>
+            <button
+              onClick={() => onNavigate('landing')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                currentTab === 'landing' ? 'bg-white shadow-sm' : 'hover:bg-white/50'
+              }`}
+              style={{ color: currentTab === 'landing' ? '#1a1a2e' : '#6b6b80' }}
+            >
+              Overview
+            </button>
             <button
               onClick={() => onNavigate('login')}
-              className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                currentTab === 'login' ? 'bg-white shadow-sm' : 'hover:bg-white/50'
+              }`}
+              style={{ color: currentTab === 'login' ? '#1a1a2e' : '#6b6b80' }}
             >
               Sign In
             </button>
             <button
               onClick={() => onNavigate('register')}
-              className="px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-xl shadow-md shadow-brand-600/25 transition-all"
+              className="px-5 py-2 rounded-full text-sm font-semibold text-white transition-all shadow-md hover:shadow-lg"
+              style={{ background: 'linear-gradient(to right, #6c5ce7, #818cf8)' }}
             >
-              Get Started Free
+              Get Started
             </button>
-          </div>
+          </nav>
         )}
 
-        {/* User Profile & Logout Dropdown */}
-        {user && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => onNavigate('profile')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                currentTab === 'profile' ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800 hover:bg-slate-800'
-              }`}
-            >
-              <div className="w-6 h-6 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-xs">
-                {user.full_name.charAt(0)}
-              </div>
-              <span className="text-xs font-medium text-slate-200 hidden sm:inline">{user.full_name}</span>
-            </button>
-
-            <button
-              onClick={logout}
-              title="Sign Out"
-              className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl border border-slate-800 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+        {/* Right side: Search + Notification + Profile */}
+        <div className="flex items-center gap-3 ml-auto">
+          <div
+            className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border cursor-pointer transition-all hover:border-purple-400"
+            style={{ borderColor: '#e5e3ee', background: '#fff' }}
+          >
+            <Search className="w-4 h-4" style={{ color: '#9b9bae' }} />
+            <span className="text-sm" style={{ color: '#9b9bae' }}>Search</span>
           </div>
-        )}
+
+          {user && (
+            <>
+              <button
+                onClick={() => onNavigate('profile')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all hover:border-purple-400"
+                style={{
+                  borderColor: '#e5e3ee',
+                  background: currentTab === 'profile' ? '#f5f3ff' : '#fff',
+                }}
+              >
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs text-white"
+                  style={{ background: '#6c5ce7' }}
+                >
+                  {user.full_name.charAt(0)}
+                </div>
+                <span className="text-sm font-medium hidden sm:inline" style={{ color: '#2d2d44' }}>
+                  {user.full_name}
+                </span>
+              </button>
+
+              <button
+                onClick={logout}
+                title="Sign Out"
+                className="p-2 rounded-full border transition-all hover:border-red-300 hover:bg-red-50"
+                style={{ borderColor: '#e5e3ee', color: '#9b9bae' }}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

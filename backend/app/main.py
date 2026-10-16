@@ -108,6 +108,21 @@ def on_startup():
     finally:
         db.close()
 
+    # Automatically start Cloudflare HTTPS Tunnel in background for cross-device mobile access
+    try:
+        from app.services.tunnel_service import tunnel_service
+        tunnel_service.start_tunnel_async(target_url="http://localhost:5174")
+    except Exception as e:
+        logger.warning(f"Could not initialize auto-tunnel: {e}")
+
+@app.on_event("shutdown")
+def on_shutdown():
+    try:
+        from app.services.tunnel_service import tunnel_service
+        tunnel_service.stop_tunnel()
+    except Exception:
+        pass
+
 @app.get("/")
 def root():
     return {

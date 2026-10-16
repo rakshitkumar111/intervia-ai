@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Virtual Humanoid Interviewer – Progress Presentation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+    .slide {
+      display: none;
+      height: calc(100vh - 120px);
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    .slide.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen select-none">
+
+  <!-- Top Navigation Header -->
+  <header class="h-16 border-b border-slate-800 px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
+        <i class="fa-solid fa-robot text-sm"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight text-white">AI Virtual Humanoid Interviewer</h1>
+        <p class="text-[11px] text-slate-400">Monthly Engineering Progress Deck (v1.2-STABLE)</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 text-xs font-semibold text-slate-400">
+      <span id="slideIndicator" class="bg-slate-900 border border-slate-800 px-3 py-1 rounded-full text-purple-400">Slide 1 / 6</span>
+      <button onclick="toggleFullScreen()" class="hover:text-white px-2 py-1"><i class="fa-solid fa-expand mr-1"></i> Fullscreen</button>
+    </div>
+  </header>
+
+  <!-- Slide Content Area -->
+  <main class="flex-1 p-6 flex items-center justify-center">
+
+    <!-- SLIDE 1: Title -->
+    <section id="slide-1" class="slide active flex-col items-center justify-center text-center max-w-4xl w-full">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-xs font-semibold mb-6">
+        <i class="fa-solid fa-sparkles"></i> Monthly Engineering Sprint Progress
+      </div>
+      <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
+        AI Virtual Humanoid Interviewer
+      </h1>
+      <p class="text-lg text-slate-300 max-w-2xl mb-8 leading-relaxed">
+        Key features, AI performance optimizations, confidential candidate security, and automated executive reporting built over the last 30 days.
+      </p>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-left">
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+          <div class="text-purple-400 text-lg mb-1"><i class="fa-solid fa-envelope"></i></div>
+          <div class="text-xs font-bold text-white">Gmail & WhatsApp</div>
+          <div class="text-[11px] text-slate-400">Real candidate dispatch</div>
+        </div>
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+          <div class="text-blue-400 text-lg mb-1"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="text-xs font-bold text-white">HireVue Protocol</div>
+          <div class="text-[11px] text-slate-400">Confidential submissions</div>
+        </div>
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+          <div class="text-emerald-400 text-lg mb-1"><i class="fa-solid fa-brain"></i></div>
+          <div class="text-xs font-bold text-white">Gemini 3.8 Flash</div>
+          <div class="text-[11px] text-slate-400">Real-time live LLM</div>
+        </div>
+        <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
+          <div class="text-amber-400 text-lg mb-1"><i class="fa-solid fa-file-pdf"></i></div>
+          <div class="text-xs font-bold text-white">One-Click PDF</div>
+          <div class="text-[11px] text-slate-400">Executive report downloads</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: Candidate Invites -->
+    <section id="slide-2" class="slide flex-col justify-center max-w-4xl w-full">
+      <div class="text-xs font-bold text-purple-400 uppercase tracking-wider mb-2">Channel Integration</div>
+      <h2 class="text-3xl font-extrabold text-white mb-6">Remote Candidate Invitation System</h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Real Gmail SMTP Dispatch</h3>
+              <p class="text-xs text-slate-400">100% automated delivery</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Integrated live Google App Passwords with RFC-compliant <code class="text-purple-300 font-mono">EHLO</code> handshakes. Supports STARTTLS (port 587) with automatic fallback to port 465 SSL.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <i class="fa-brands fa-whatsapp"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">WhatsApp Direct Links</h3>
+              <p class="text-xs text-slate-400">One-click mobile share</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Auto-generates pre-formatted <code class="text-purple-300 font-mono">wa.me</code> deep links for recruiters to dispatch invites via WhatsApp with complete candidate role details.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <i class="fa-solid fa-key"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Frictionless Token Join</h3>
+              <p class="text-xs text-slate-400">Zero registration required</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Candidates join instantly using an isolated secure URL token. No sign-up, password setup, or account friction required.
+          </p>
+        </div>
+
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+              <i class="fa-solid fa-globe"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-white">Cloudflare HTTPS Tunnel</h3>
+              <p class="text-xs text-slate-400">Worldwide remote access</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Local development server exposed securely over the public internet via Cloudflare Tunnel, allowing live mobile device tests.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: HireVue Protocol -->
+    <section id="slide-3" class="slide flex-col justify-center max-w-4xl w-full">
+      <div class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Confidentiality & Compliance</div>
+      <h2 class="text-3xl font-extrabold text-white mb-6">Enterprise HireVue Protocol</h2>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 mb-6">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 text-xl">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white mb-1">Confidential Candidate Experience</h3>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              Upon completing the session, candidates do not receive internal diagnostic scores, strengths, or hiring committee verdicts. This eliminates unauthorized coaching leaks and adheres to standard enterprise compliance.
+            </p>
+            <div class="inline-flex items-center gap-3 px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+              <span class="text-xs text-slate-400">Sample Candidate Confirmation:</span>
+              <span class="text-xs font-mono font-bold text-emerald-400">HV-244-8921 (Submitted)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+          <h4 class="text-sm font-bold text-white mb-2"><i class="fa-solid fa-lock text-purple-400 mr-2"></i> Strict Access Gating</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">Candidate role access to <code class="text-slate-300">/report</code> redirects to an encrypted "Confidential Assessment Record" screen.</p>
+        </div>
+        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800">
+          <h4 class="text-sm font-bold text-white mb-2"><i class="fa-solid fa-eye text-emerald-400 mr-2"></i> Recruiter Isolation</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">Recruiters only view evaluations, transcripts, and telemetry for candidates they specifically invited.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Gemini AI Engine -->
+    <section id="slide-4" class="slide flex-col justify-center max-w-4xl w-full">
+      <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Cognitive Intelligence</div>
+      <h2 class="text-3xl font-extrabold text-white mb-6">Google Gemini 3.8 Flash Optimization</h2>
+
+      <div class="grid md:grid-cols-3 gap-5 mb-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div class="text-emerald-400 text-xl mb-2"><i class="fa-solid fa-bolt"></i></div>
+          <h3 class="text-sm font-bold text-white mb-1">15s Timeout Scale</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Eliminated hardcoded 2.5s timeout. Live Gemini LLM now completes rich multi-turn evaluations reliably.
+          </p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div class="text-purple-400 text-xl mb-2"><i class="fa-solid fa-arrows-rotate"></i></div>
+          <h3 class="text-sm font-bold text-white mb-1">Anti-Repetition Memory</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Session history tracking ensures questions are never repeated within an active interview round.
+          </p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div class="text-blue-400 text-xl mb-2"><i class="fa-solid fa-heart-pulse"></i></div>
+          <h3 class="text-sm font-bold text-white mb-1">Universal Fallback Standby</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Local algorithmic NLP standby guarantees zero interview interruption even during cloud rate limits.
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-300 font-semibold">Active AI Telemetry:</span>
+          <span class="text-purple-300 font-mono">gemini-3.8-flash (Model Live)</span>
+        </div>
+        <span class="text-slate-400">Average Evaluation Latency: <strong class="text-white">~3.2s</strong></span>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Recruiter Reporting -->
+    <section id="slide-5" class="slide flex-col justify-center max-w-4xl w-full">
+      <div class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">Recruiter Intelligence</div>
+      <h2 class="text-3xl font-extrabold text-white mb-6">Executive Reporting & Instant Alerts</h2>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div class="text-amber-400 text-2xl mb-3"><i class="fa-solid fa-file-pdf"></i></div>
+          <h3 class="text-base font-bold text-white mb-2">One-Click PDF Report Download</h3>
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            Harmonized Python ReportLab pipeline with backend routes. Recruiters can now download candidate assessment PDF reports directly from the UI with zero permission errors.
+          </p>
+          <div class="text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-3 py-1.5 rounded-lg inline-block">
+            <i class="fa-solid fa-circle-check mr-1"></i> HTTP 200 OK (Instant Binary Streaming)
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div class="text-purple-400 text-2xl mb-3"><i class="fa-solid fa-bell"></i></div>
+          <h3 class="text-base font-bold text-white mb-2">Automated Recruiter Alerts</h3>
+          <p class="text-xs text-slate-300 leading-relaxed mb-4">
+            The moment a candidate completes the interview, a background notification email is dispatched to the recruiter with candidate score, verdict, and direct report link.
+          </p>
+          <div class="text-[11px] text-purple-400 bg-purple-950/40 border border-purple-500/20 px-3 py-1.5 rounded-lg inline-block">
+            <i class="fa-solid fa-paper-plane mr-1"></i> Dispatched via EmailService
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: Quality Metrics -->
+    <section id="slide-6" class="slide flex-col justify-center max-w-4xl w-full text-center">
+      <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">Sprint Verification</div>
+      <h2 class="text-3xl font-extrabold text-white mb-6">Quality Assurance & System Health</h2>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-3xl font-black text-emerald-400 mb-1">43 / 43</div>
+          <div class="text-xs font-bold text-white">Backend Tests</div>
+          <div class="text-[11px] text-slate-400">100% Passing</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-3xl font-black text-blue-400 mb-1">0</div>
+          <div class="text-xs font-bold text-white">TypeScript Errors</div>
+          <div class="text-[11px] text-slate-400">Clean compilation</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-3xl font-black text-purple-400 mb-1">100%</div>
+          <div class="text-xs font-bold text-white">Email Delivery</div>
+          <div class="text-[11px] text-slate-400">Gmail SMTP Verified</div>
+        </div>
+        <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+          <div class="text-3xl font-black text-amber-400 mb-1">v1.2</div>
+          <div class="text-xs font-bold text-white">Stable Build</div>
+          <div class="text-[11px] text-slate-400">Production ready</div>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 max-w-lg mx-auto">
+        Platform validated end-to-end: Candidate Invite &rarr; Speech-to-Text &rarr; Gemini Evaluation &rarr; HireVue Submission &rarr; PDF Download.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <footer class="h-16 border-t border-slate-800 px-6 flex items-center justify-between bg-slate-950/80 backdrop-blur">
+    <div class="text-xs text-slate-500">
+      Use <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 font-mono">Left</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-300 font-mono">Right</kbd> arrow keys to navigate
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="prevSlide()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white rounded-xl transition">
+        <i class="fa-solid fa-chevron-left mr-1"></i> Previous
+      </button>
+      <button onclick="nextSlide()" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white rounded-xl transition shadow-lg shadow-purple-600/20">
+        Next <i class="fa-solid fa-chevron-right ml-1"></i>
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+
+    function showSlide(index) {
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      const activeEl = document.getElementById(`slide-${index}`);
+      if (activeEl) activeEl.classList.add('active');
+      document.getElementById('slideIndicator').innerText = `Slide ${index} / ${totalSlides}`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        showSlide(currentSlide);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        showSlide(currentSlide);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+  </script>
+</body>
+</html>

@@ -51,3 +51,16 @@ Thumbs.db
 
 # Logs
 *.log
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Runtime uploads and test audio
+backend/uploads/
+backend/test_*.mp3
+backend/test_*.wav
+backend/test_*.m4a
+
+# Public tunnel URLs
+tunnel_url.txt

@@ -2,40 +2,323 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   GLOBAL HIREBYTE LIGHT THEME SYSTEM
+   Applies unified light theme (lavender / white / purple)
+   across every page, component, card, table, and modal.
+   ===================================================== */
+
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100;
+    @apply text-gray-800;
+    background: #f0eff5 !important;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1a1a2e !important;
   }
 }
 
-/* Custom Scrollbar */
+/* ── Universal Background Overrides (catches all opacity variants) ── */
+[class*="bg-slate-950"] {
+  background-color: #ffffff !important;
+}
+[class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+}
+[class*="bg-slate-850"] {
+  background-color: #f7f6fb !important;
+}
+[class*="bg-slate-800"] {
+  background-color: #f7f6fb !important;
+}
+
+/* Base slate classes */
+.bg-slate-950 { background-color: #f0eff5 !important; }
+.bg-slate-900 { background-color: #ffffff !important; }
+.bg-slate-850 { background-color: #f3f2f8 !important; }
+.bg-slate-800 { background-color: #f7f6fb !important; }
+
+/* ── Universal Table Light Theme ── */
+table {
+  background-color: #ffffff !important;
+}
+
+table thead,
+thead,
+thead tr,
+thead th,
+[class*="bg-slate-900/90"],
+[class*="bg-slate-950/80"] {
+  background-color: #f7f6fb !important;
+  color: #6b6b80 !important;
+  border-color: #e5e3ee !important;
+}
+
+table thead th {
+  background-color: #f7f6fb !important;
+  color: #6b6b80 !important;
+  border-bottom: 1px solid #e5e3ee !important;
+  font-weight: 700 !important;
+}
+
+table tbody,
+tbody {
+  background-color: #ffffff !important;
+}
+
+table tbody tr,
+tbody tr {
+  background-color: #ffffff !important;
+  border-color: #f0eff5 !important;
+}
+
+table tbody tr:hover,
+tbody tr:hover {
+  background-color: #faf9fd !important;
+}
+
+table td {
+  color: #2d2d44 !important;
+  border-color: #f0eff5 !important;
+}
+
+table td [class*="text-slate-500"],
+table td [class*="text-slate-400"] {
+  color: #6b6b80 !important;
+}
+
+/* ── Text Color Overrides ── */
+.text-slate-100 { color: #1a1a2e !important; }
+.text-slate-200 { color: #2d2d44 !important; }
+.text-slate-300 { color: #3d3d58 !important; }
+.text-slate-400 { color: #6b6b80 !important; }
+.text-slate-500 { color: #8b8ba0 !important; }
+.text-slate-600 { color: #9b9bae !important; }
+
+/* In dark-themed code, headings, divs, spans used text-white.
+   Convert these to dark text on light backgrounds: */
+div.text-white,
+span.text-white,
+td .text-white,
+td.text-white,
+p.text-white,
+h1.text-white,
+h2.text-white,
+h3.text-white,
+h4.text-white,
+h5.text-white,
+strong.text-white {
+  color: #1a1a2e !important;
+}
+
+/* Keep white text on actual action buttons, badges, gradients, and dark accents */
+button.text-white,
+button .text-white,
+button span.text-white,
+a.text-white,
+[class*="bg-purple-600"],
+[class*="bg-brand-600"],
+[class*="bg-blue-600"],
+[class*="bg-emerald-600"],
+[class*="bg-gradient-to"] > span,
+[class*="bg-gradient-to"] .text-white,
+[style*="background: linear-gradient"] .text-white,
+[style*="background: #1a1a2e"] .text-white,
+[style*="background: #1"] .text-white,
+[style*="background: rgb(26"] .text-white {
+  color: #ffffff !important;
+}
+
+/* Slate buttons on light theme must have dark text */
+button[class*="bg-slate-800"],
+button[class*="bg-slate-900"],
+button[class*="bg-slate-950"] {
+  color: #1a1a2e !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e3ee !important;
+}
+
+button[class*="bg-slate-800"]:hover,
+button[class*="bg-slate-900"]:hover {
+  background-color: #f7f6fb !important;
+}
+
+button[class*="bg-slate-800"] > span,
+button[class*="bg-slate-900"] > span {
+  color: #1a1a2e !important;
+}
+
+/* ── Border Overrides ── */
+[class*="border-slate"] {
+  border-color: #e5e3ee !important;
+}
+.border-slate-700 { border-color: #d8d6e3 !important; }
+.border-slate-800 { border-color: #e5e3ee !important; }
+.border-slate-900 { border-color: #ece9f5 !important; }
+
+[class*="divide-slate"] > * + * {
+  border-color: #e5e3ee !important;
+}
+
+/* ── Gradient Stops Overrides (kills dark gradient bands globally) ── */
+.from-slate-900, .from-slate-950, .from-purple-950\/40, .from-purple-950 {
+  --tw-gradient-from: #ffffff !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #faf9fd, var(--tw-gradient-to) !important;
+}
+.via-slate-900, .via-slate-950 {
+  --tw-gradient-stops: var(--tw-gradient-from), #faf9fd, var(--tw-gradient-to) !important;
+}
+.to-slate-900, .to-slate-950, .to-brand-950\/40, .to-brand-950 {
+  --tw-gradient-to: #f4f0ff !important;
+}
+
+/* ── Status & Notification Boxes (clean light badges) ── */
+.bg-emerald-950\/20, .bg-emerald-950\/40, .bg-emerald-950\/60 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+.text-emerald-300, .text-emerald-400 {
+  color: #059669 !important;
+}
+.border-emerald-800, .border-emerald-800\/40 {
+  border-color: #a7f3d0 !important;
+}
+
+.bg-amber-950\/20, .bg-amber-950\/40, .bg-amber-950\/60 {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+.text-amber-300, .text-amber-400 {
+  color: #d97706 !important;
+}
+.border-amber-800, .border-amber-800\/40 {
+  border-color: #fde68a !important;
+}
+
+.bg-rose-950\/20, .bg-rose-950\/40, .bg-rose-950\/60 {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+.text-rose-300, .text-rose-400 {
+  color: #e11d48 !important;
+}
+.border-rose-800, .border-rose-800\/40 {
+  border-color: #fecdd3 !important;
+}
+
+.bg-purple-950\/20, .bg-purple-950\/40, .bg-purple-950\/60 {
+  background-color: #f5f3ff !important;
+  border-color: #ddd6fe !important;
+}
+.bg-indigo-950\/20, .bg-indigo-950\/40, .bg-indigo-950\/60 {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+.border-indigo-800, .border-indigo-800\/40 {
+  border-color: #c7d2fe !important;
+}
+
+/* ── Brand / Purple Accent Polish ── */
+.bg-brand-500\/10 { background-color: rgba(108, 92, 231, 0.08) !important; }
+.bg-brand-500\/20 { background-color: rgba(108, 92, 231, 0.12) !important; }
+.bg-brand-600\/20 { background-color: rgba(108, 92, 231, 0.12) !important; }
+.text-brand-400 { color: #6c5ce7 !important; }
+.border-brand-500\/20 { border-color: rgba(108, 92, 231, 0.2) !important; }
+.border-brand-500\/30 { border-color: rgba(108, 92, 231, 0.25) !important; }
+.shadow-brand-500\/20 { --tw-shadow-color: rgba(108, 92, 231, 0.15) !important; }
+.shadow-brand-500\/25 { --tw-shadow-color: rgba(108, 92, 231, 0.2) !important; }
+.shadow-brand-600\/25 { --tw-shadow-color: rgba(108, 92, 231, 0.2) !important; }
+.shadow-brand-600\/30 { --tw-shadow-color: rgba(108, 92, 231, 0.25) !important; }
+
+/* ── Purple accents ── */
+.bg-purple-500\/10 { background-color: rgba(108, 92, 231, 0.08) !important; }
+.bg-purple-950\/30 { background-color: rgba(108, 92, 231, 0.06) !important; }
+.text-purple-300 { color: #7c6cf0 !important; }
+.text-purple-400 { color: #6c5ce7 !important; }
+.border-purple-500\/20 { border-color: rgba(108, 92, 231, 0.2) !important; }
+
+/* ── Gradient fixes for light theme ── */
+.bg-gradient-to-r.from-brand-600.to-blue-600 {
+  background-image: linear-gradient(to right, #6c5ce7, #818cf8) !important;
+}
+
+.bg-gradient-to-r.from-brand-600.via-blue-500.to-indigo-600 {
+  background-image: linear-gradient(to right, #6c5ce7, #818cf8, #6366f1) !important;
+}
+
+.bg-gradient-to-tr.from-brand-600.via-blue-500.to-indigo-600 {
+  background-image: linear-gradient(to top right, #6c5ce7, #818cf8, #6366f1) !important;
+}
+
+/* ── Backdrop blur header ── */
+.backdrop-blur-md {
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* ── Form input overrides ── */
+input, textarea, select {
+  background-color: #ffffff !important;
+  border-color: #e5e3ee !important;
+  color: #1a1a2e !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9b9bae !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: #6c5ce7 !important;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12) !important;
+}
+
+select option {
+  background-color: #ffffff !important;
+  color: #1a1a2e !important;
+}
+
+/* ── Modal Dialogs ── */
+.fixed.inset-0 .bg-slate-900,
+.fixed.inset-0 .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #e5e3ee !important;
+  color: #1a1a2e !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+.fixed.inset-0 .border-b,
+.fixed.inset-0 .border-t {
+  border-color: #e5e3ee !important;
+}
+
+/* ── Scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #f0eff5;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #d4d1e4;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #b8b5cc;
 }
 
-/* Glow effects */
-.glow-primary {
-  box-shadow: 0 0 25px -5px rgba(12, 142, 230, 0.4);
+/* ── Selection colors ── */
+::selection {
+  background: rgba(108, 92, 231, 0.2) !important;
+  color: #1a1a2e !important;
 }
 
-.glow-emerald {
-  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
-}
-
-.glow-amber {
-  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
+/* ── Exception for landing page dark section ── */
+section[style*="background: #1a1a2e"] h2,
+section[style*="background: #1a1a2e"] h3,
+section[style*="background: #1a1a2e"] p,
+section[style*="background: #1a1a2e"] .text-white {
+  color: #ffffff !important;
 }
