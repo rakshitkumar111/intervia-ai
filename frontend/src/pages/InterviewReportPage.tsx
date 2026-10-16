@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Award, Download, CheckCircle2, AlertTriangle, ArrowRight, RotateCcw, FileText, Check, ShieldCheck, Sparkles, Briefcase, Globe, User, BookOpen } from 'lucide-react';
 import { interviewApi } from '../services/interviewApi';
+import { API_BASE } from '../services/api';
 import { InterviewReport, InterviewSession } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -114,17 +115,15 @@ export const InterviewReportPage: React.FC<InterviewReportPageProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          {report.pdf_report_path && (
-            <a
-              href={report.pdf_report_path}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-600/25 transition-all"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download PDF Report</span>
-            </a>
-          )}
+          <a
+            href={`${API_BASE}/interview/${interviewId}/download-pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-purple-600/25 transition-all"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download PDF Report</span>
+          </a>
           <button
             onClick={() => onNavigate('dashboard')}
             className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold transition-all"

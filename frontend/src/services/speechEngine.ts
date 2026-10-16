@@ -1,3 +1,5 @@
+import { API_BASE } from './api';
+
 // Cross-browser Speech Recognition type declaration
 interface IWindow extends Window {
   webkitSpeechRecognition?: any;
@@ -275,7 +277,7 @@ export class SpeechEngine {
           : 'en-IN-NeerjaNeural' // Authentic Indian English Voice by default
       );
 
-      const response = await fetch('/api/speech/synthesize', {
+      const response = await fetch(`${API_BASE}/speech/synthesize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

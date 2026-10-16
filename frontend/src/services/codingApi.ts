@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+import { API_BASE } from "./api";
 
 export interface TestCase {
   id?: number;
@@ -107,7 +107,7 @@ export const codingApi = {
     testCases: TestCase[] = [],
     questionId?: number
   ): Promise<CodeSubmitResponse> {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("interviewer_token") || localStorage.getItem("token");
     const res = await fetch(`${API_BASE}/coding/submit`, {
       method: "POST",
       headers: {

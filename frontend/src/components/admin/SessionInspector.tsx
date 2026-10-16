@@ -1,5 +1,6 @@
 import React from 'react';
 import { FileText, Download, UserCheck, ShieldAlert } from 'lucide-react';
+import { API_BASE } from '../../services/api';
 
 interface SessionInspectorProps {
   interviews: any[];
@@ -58,9 +59,9 @@ export const SessionInspector: React.FC<SessionInspectorProps> = ({ interviews }
                   )}
                 </td>
                 <td className="py-3.5 text-right">
-                  {i.pdf_url ? (
+                  {i.status === 'completed' || i.pdf_url ? (
                     <a
-                      href={i.pdf_url}
+                      href={`${API_BASE}/interview/${i.id}/download-pdf`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-lg text-xs font-semibold transition-colors"
