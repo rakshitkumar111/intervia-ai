@@ -1,11 +1,11 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = localStorage.getItem('interviewer_token');
-  
+
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> || {}),
   };
