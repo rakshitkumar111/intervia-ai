@@ -52,6 +52,13 @@ export const App: React.FC = () => {
     if (inviteToken) {
       setCurrentTab('candidate-join');
       setNavParams({ inviteToken });
+    } else {
+      const tabParam = params.get('tab');
+      if (tabParam) {
+        setCurrentTab(tabParam);
+      } else if (path.includes('/hirebyte') || window.location.hash === '#hirebyte') {
+        setCurrentTab('hirebyte');
+      }
     }
   }, []);
 

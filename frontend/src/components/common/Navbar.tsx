@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onNavigate }) => {
             <Diamond className="w-5 h-5" style={{ color: '#6c5ce7' }} />
           </div>
           <span className="text-lg font-extrabold tracking-wide" style={{ color: '#1a1a2e', letterSpacing: '0.5px' }}>
-            HIREBYTE
+            INTERVIA
           </span>
         </div>
 

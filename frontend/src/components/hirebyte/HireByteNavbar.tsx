@@ -25,7 +25,7 @@ export const HireByteNavbar: React.FC = () => {
           <div className="hb-logo-icon">
             <Diamond size={20} strokeWidth={2.5} />
           </div>
-          <span className="hb-logo-text">HIREBYTE</span>
+          <span className="hb-logo-text">INTERVIA</span>
         </div>
 
         {/* Navigation Links */}

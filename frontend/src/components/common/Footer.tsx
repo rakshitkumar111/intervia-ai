@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
           </div>
           <div>
             <span className="font-bold text-sm" style={{ color: '#1a1a2e' }}>
-              AI Humanoid Virtual Interviewer
+              Intervia – AI Humanoid Virtual Interviewer
             </span>
             <p className="text-[11px]" style={{ color: '#9b9bae' }}>
               Production-Grade B.Tech Final Year Capstone Project
